@@ -1,0 +1,5 @@
+{
+    "mongo_connection_string": "",
+    "host": "localhost",
+    "port": 8000
+}
