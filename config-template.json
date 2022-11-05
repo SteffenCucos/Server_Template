@@ -1,5 +1,9 @@
 {
-    "mongo_connection_string": "",
+  "mongo": {
+    "connection_string": ""
+  },
+  "network": {
     "host": "localhost",
     "port": 8000
+  }
 }

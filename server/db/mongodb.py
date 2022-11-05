@@ -8,7 +8,7 @@ from pymongo_inmemory import MongoClient as MemClient
 from config import get_config
 
 
-client = MongoClient(get_config().mongo_connection_string, serverSelectionTimeoutMS=100, connectTimeoutMS=20000)
+client = MongoClient(get_config().mongo.connection_string, serverSelectionTimeoutMS=100, connectTimeoutMS=20000)
 
 
 def get_collection(database: str, collectionName: str) -> Collection:

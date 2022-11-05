@@ -10,7 +10,7 @@ app.include_router(api_router)
 
 if __name__ == "__main__":
     config = get_config()
-    host = config.host
-    port = config.port
+    host = config.network.host
+    port = config.network.port
 
-    uvicorn.run(app, port=int(config.port), host=host)
+    uvicorn.run(app, port=port, host=host)

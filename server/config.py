@@ -6,20 +6,46 @@ from pserialize import deserialize
 
 
 @dataclass
-class Config:
-    mongo_connection_string: str
+class Mongo:
+    connection_string: str
+
+
+@dataclass
+class Network:
     host: str
     port: int
+
+
+@dataclass
+class Config:
+    mongo: Mongo
+    network: Network
+
+
+__config: Config = None
 
 
 def fromFile(configPath: str) -> Config:
     with open(configPath, "rb") as configFile:
         configJson = json.loads(configFile.read())
-        return deserialize(configJson, Config)
+        return configJson
 
 
 def get_config() -> Config:
-    try:
-        return fromFile("config.json")
-    except:
-        return fromFile("../config.json")
+    global __config
+    if not __config:
+        configJson = None
+        for n in range(5):
+            try:
+                configJson = fromFile("../" * n + "config.json")
+            except:
+                continue
+
+        if not configJson:
+            raise Exception("Could not find config.json file")
+        try:
+            __config = deserialize(configJson, Config)
+        except Exception as e:
+            raise Exception("Config is invalid", e)
+
+    return __config
