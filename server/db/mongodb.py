@@ -5,10 +5,10 @@ from pymongo import MongoClient
 # In memory mongo client
 from pymongo_inmemory import MongoClient as MemClient
 
-from config import get_config
+from config import config
 
 
-client = MongoClient(get_config().mongo.connection_string, serverSelectionTimeoutMS=100, connectTimeoutMS=20000)
+client = MongoClient(config.mongo.connection_string, serverSelectionTimeoutMS=100, connectTimeoutMS=20000)
 
 
 def get_collection(database: str, collectionName: str) -> Collection:

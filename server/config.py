@@ -21,23 +21,20 @@ class Config:
     mongo: Mongo
     network: Network
 
-
-__config: Config = None
-
-
-def fromFile(configPath: str) -> Config:
+def __fromFile(configPath: str) -> Config:
     with open(configPath, "rb") as configFile:
         configJson = json.loads(configFile.read())
         return configJson
 
+__config: Config = None
 
-def get_config() -> Config:
+def __get_config() -> Config:
     global __config
     if not __config:
         configJson = None
         for n in range(5):
             try:
-                configJson = fromFile("../" * n + "config.json")
+                configJson = __fromFile("../" * n + "config.json")
             except:
                 continue
 
@@ -49,3 +46,5 @@ def get_config() -> Config:
             raise Exception("Config is invalid", e)
 
     return __config
+
+config: Config = __get_config()

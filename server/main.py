@@ -3,13 +3,12 @@ from api.v1.api import api_router
 
 from fastapi import FastAPI
 
-from config import get_config
+from config import config
 
 app = FastAPI()
 app.include_router(api_router)
 
 if __name__ == "__main__":
-    config = get_config()
     host = config.network.host
     port = config.network.port
 
