@@ -19,18 +19,14 @@ class BaseDAO(Generic[T]):
         self.deserializer = get_application_deserializer()
 
     def save(self, object: T) -> Id:
-        self.prep_for_save(object)
         return self.collection.insert_one(self.serializer.serialize(object)).inserted_id
 
     def save_many(self, lst: list[T]) -> list[Id]:
-        for object in lst:
-            self.prep_for_save(object)
         serialized = self.serializer.serialize(lst)
         inserted = self.collection.insert_many(serialized)
         return inserted
 
     def update(self, object: T):
-        self.prep_for_save(object)
         self.collection.update_one(self.get_id_criteria(
             object), self.get_update_query(object))
 
@@ -38,9 +34,6 @@ class BaseDAO(Generic[T]):
         return UpdateOne(self.get_id_criteria(object), self.get_update_query(object))
 
     def update_many(self, lst: list[T]):
-        for object in lst:
-            self.prep_for_save(object)
-
         self.collection.bulk_write(
             [self.update_request(object) for object in lst])
 
@@ -55,16 +48,6 @@ class BaseDAO(Generic[T]):
         if ret:
             return self.deserializer.deserialize(value=ret, classType=self.classType)
         return None
-
-    def prep_for_save(self, object: object):
-        self.validate_has_id(object)
-        if not hasattr(object, "_created_date"):
-            object.set_created_date()
-        object.set_updated_date()
-
-    def validate_has_id(self, object: object):
-        if not hasattr(object, "_id"):
-            raise Exception("object must have _id field")
 
     def get_id_criteria(self, object):
         return {

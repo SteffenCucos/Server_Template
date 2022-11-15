@@ -13,8 +13,8 @@ class Router(APIRouter):
     '''
     Custom router that runs simpler serialization logic to avoid certain
     pitfalls of FastAPIs standard serialization scheme. The specific use
-    case for us is that FastAPI doesn't support the case where a dataclass
-    extends a non dataclass, so it misses serializing those fields
+    cases for us is that FastAPI doesn't support the case where a dataclass
+    extends a non dataclass, and it doesn't support serializing enums.
     '''
 
     def get(self, endpoint: str):
@@ -28,7 +28,7 @@ class Router(APIRouter):
             return super(Router, self).post(endpoint)(Router.get_serialize_wrapper(func))
 
         return post_decorator
-    
+
     def put(self, endpoint: str):
         def put_decorator(func):
             return super(Router, self).put(endpoint)(Router.get_serialize_wrapper(func))
