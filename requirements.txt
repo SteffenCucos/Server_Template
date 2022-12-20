@@ -2,4 +2,6 @@ FastAPI # API library
 uvicorn # Web server
 pymongo # Mongo driver
 pymongo_inmemory # In memory mongo driver
-pserializeation # Serialization library
+requests # httpm
+pserialization # Serialization library
+pytest # testing
