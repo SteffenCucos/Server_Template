@@ -5,3 +5,4 @@ pymongo_inmemory # In memory mongo driver
 requests # httpm
 pserialization # Serialization library
 pytest # testing
+kink # DI framework

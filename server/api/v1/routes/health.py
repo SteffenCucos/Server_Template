@@ -1,22 +1,20 @@
 from fastapi import Depends
-
-from ...v1 import base_route
-from ...router import Router
-
 from service.health_service import HealthService
+
+from ...router import Router
+from ...v1 import base_route
 
 router = Router(
     prefix=base_route + "/health",
     tags=["health"]
 )
 
-
 @router.get("")
 def status(
-    healthService: HealthService = Depends(HealthService)
+    health_service: HealthService = Depends(HealthService)
 ):
     # https://testfully.io/blog/api-health-check-monitoring/
     return {
         "running": True,
-        "mongodb": healthService.mongo_health_check()
+        "mongodb": health_service.mongo_health_check()
     }

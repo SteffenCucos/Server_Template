@@ -1,8 +1,11 @@
-from models.id import Id
-from .serializing_middleware import get_application_serializer, get_application_deserializer
+from typing import Generic, TypeVar
+
+from models.base.id import Id
 from pymongo import UpdateOne
 from pymongo.collection import Collection
-from typing import TypeVar, Generic
+
+from .serializing_middleware import (get_application_deserializer,
+                                     get_application_serializer)
 
 T = TypeVar('T')
 
@@ -37,25 +40,22 @@ class BaseDAO(Generic[T]):
         self.collection.bulk_write(
             [self.update_request(object) for object in lst])
 
-    def find_one_by_name(self, name: str) -> T:
-        return self.find_one_by_condition({"name": name})
+    def find_all(self) -> list[T]:
+        return self.deserializer.deserialize(value=list(self.collection.find({})), classType=list[self.classType])
 
-    def find_one_by_id(self, id: str) -> T:
-        return self.find_one_by_condition({"_id": id})
-
-    def find_one_by_condition(self, condition: dict) -> T:
+    def find_one_by_condition(self, condition: dict) -> T | None:
         ret = self.collection.find_one(condition)
         if ret:
             return self.deserializer.deserialize(value=ret, classType=self.classType)
         return None
 
-    def get_id_criteria(self, object):
-        return {
-            "_id": object._id
-        }
-
     # Save all the fields from the object into mongo
     def get_update_query(self, object):
         return {
             "$set": self.serializer.serialize(object)
+        }
+
+    def get_id_criteria(self, entity: T):
+        return {
+            "_id": entity._id
         }

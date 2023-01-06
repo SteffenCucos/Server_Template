@@ -1,10 +1,8 @@
 
-from fastapi import Depends
-from requests.sessions import Session
+import logging
 
 from db.mongodb import client
 
-import logging
 logger = logging.getLogger(__name__)
 
 

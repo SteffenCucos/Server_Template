@@ -1,12 +1,16 @@
-import inspect
-
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-
-from starlette.requests import Request
+import logging
 
 from db.serializing_middleware import get_application_serializer
+from fastapi import APIRouter
+from fastapi.responses import HTMLResponse, JSONResponse
+from starlette.requests import Request
+
+from api.decorators.context import set_context
+from api.decorators.decorator import apply_func, fix_signature
+
 serializer = get_application_serializer()
+
+logger = logging.getLogger()
 
 
 class Router(APIRouter):
@@ -17,8 +21,12 @@ class Router(APIRouter):
     extends a non dataclass, and it doesn't support serializing enums.
     '''
 
+    def __init__(self, *positional, **named):
+        logger.info(f"Initialized router: {named['prefix']}")
+        super().__init__(*positional, **named)
+
     def get(self, endpoint: str):
-        def get_decorator(func):
+        def get_decorator(func):    
             return super(Router, self).get(endpoint)(Router.get_serialize_wrapper(func))
 
         return get_decorator
@@ -48,29 +56,20 @@ class Router(APIRouter):
         return patch_decorator
 
     @staticmethod
-    def fix_signature(wrapper, func):
-        params = [
-            # Skip *args and **kwargs from wrapper parameters:
-            *filter(
-                lambda p: p.kind not in (
-                    inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD),
-                inspect.signature(wrapper).parameters.values()
-            ),
-            # Use all parameters from handler
-            *inspect.signature(func).parameters.values()
-        ]
-
-        wrapper.__signature__ = inspect.Signature(
-            parameters=params,
-            return_annotation=inspect.signature(func).return_annotation,
-        )
-
-    @staticmethod
     def get_serialize_wrapper(func):
+        @set_context() # Hack to have all routes set context
+        # We need to take a request param here to match what other decorators
+        # will provide
         def json_serialize(request: Request, *positional, **named):
-            result = func(*positional, **named)
+            result = apply_func(func, request, *positional, **named)
+
+            if isinstance(result, HTMLResponse):
+                return result
+
             return JSONResponse(content=serializer.serialize(result))
 
-        Router.fix_signature(json_serialize, func)
+        fix_signature(json_serialize, func)
 
         return json_serialize
+
+   
