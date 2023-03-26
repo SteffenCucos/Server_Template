@@ -36,10 +36,13 @@ def decorator(pre=None, transform=None, post=None):
                     post(result, exception, request, *positional, **named)
                 except Exception as e:
                     logger.error("Exception in post func logic", e)
-                    pass
 
             if exception:
                 raise exception
+
+            if transform:
+                return transform(result)
+                
             return result
 
         # Dynamically modify the func_replace signature to match 

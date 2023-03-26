@@ -11,6 +11,8 @@ from starlette.requests import Request
 logger = logging.getLogger()
 
 def set_context():
+    '''Creates a context object for the request containing informations about the callers session and user
+    '''
     def set_context_wrapper(request: Request, *positional, **named):
         logger.info("Setting request context")
         # Sets request specific context
