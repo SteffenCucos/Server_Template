@@ -1,7 +1,6 @@
-
-
 import logging
 from dataclasses import dataclass
+from typing import Annotated
 
 from api.decorators.authenticated import authenticated
 from api.exceptions import UnauthorizedException
@@ -11,22 +10,27 @@ from auth.session.session import Session
 from fastapi import Depends
 from fastapi.responses import HTMLResponse
 from models.request_context import RequestContext
-from service.inject import Injector
+from service.dependencies import get_session_service, get_user_service
 from service.session_service import SessionService
 from service.user_service import UserService
 
 logger = logging.getLogger(__name__)
 
 router = Router(
-    prefix=base_route + "/sessions"
+    prefix=base_route + "/sessions",
 )
+
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]
+
 
 @router.get("")
 def get_sessions(
-    user_service: UserService = Depends(Injector.inject(UserService)),
-    session_service: SessionService = Depends(Injector.inject(SessionService))
+    user_service: UserServiceDep,
+    session_service: SessionServiceDep,
 ):
     sessions = session_service.get_all()
+
     def session_li(session: Session) -> str:
         user = user_service.get_user(session.user_id)
         user_name = user.user_name if user else "User DNE"
@@ -44,8 +48,9 @@ def get_sessions(
         </body>
     </html>
     """
-    
+
     return HTMLResponse(content=html_content, status_code=200)
+
 
 @dataclass
 class LoginBody:
@@ -56,8 +61,8 @@ class LoginBody:
 @router.post("/login")
 def login(
     credentials: LoginBody,
-    user_service: UserService = Depends(Injector.inject(UserService)),
-    session_service: SessionService = Depends(Injector.inject(SessionService))
+    user_service: UserServiceDep,
+    session_service: SessionServiceDep,
 ):
     user = user_service.get_user_by_name(credentials.user_name)
 
@@ -72,11 +77,11 @@ def login(
 
     return session._id
 
+
 @router.get("/logout")
 @authenticated()
 def logout(
-    session_service: SessionService = Depends(Injector.inject(SessionService))
+    session_service: SessionServiceDep,
 ):
     session_id = RequestContext.get_context().session_id
     session_service.end_session(session_id)
-

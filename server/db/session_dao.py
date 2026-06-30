@@ -1,11 +1,9 @@
 from auth.session.session import Session
-from kink import inject
 
 from db.config import DatabaseSettings
 from db.entity_dao import EntityDAO
 
 
-@inject
 class SessionDAO(EntityDAO[Session]):
     def __init__(
         self,
