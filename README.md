@@ -56,11 +56,11 @@ python -m server_template new billing-api
 
 The template supports choosing between Mongo/NoSQL and Postgres/SQL without exposing `pymongo`, `psycopg`, SQLAlchemy, collection, cursor, or session types to endpoint/service code.
 
-Application code should depend on the neutral repository protocol:
+Application code should depend on the neutral repository protocol under the template app package:
 
 ```python
-from server_template.db import MappingSerializer, Repository, create_repository
-from server_template.db.config import DatabaseSettings
+from server.db import MappingSerializer, Repository, create_repository
+from server.db.config import DatabaseSettings
 
 settings = DatabaseSettings.from_env()
 users: Repository[dict] = create_repository(
@@ -99,7 +99,7 @@ repo.delete("entity-id")
 repo.close()
 ```
 
-Concrete backend classes live under `server_template.db.backends` and handle their own connections internally:
+Concrete backend classes live under `server.db.backends` and handle their own connections internally:
 
 - `MongoRepository` connects to Mongo and maps public `id` to Mongo `_id` internally.
 - `PostgresRepository` connects to Postgres and stores records as `id TEXT PRIMARY KEY` plus JSONB payload by default.
@@ -129,8 +129,7 @@ If the application entry point differs, replace `main:app` with the correct modu
 ├── endpoints/
 ├── exceptions/
 ├── models/
-├── db/
-├── server_template/
+├── server/
 │   └── db/
 │       ├── backends/
 │       ├── config.py
