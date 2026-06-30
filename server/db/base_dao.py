@@ -1,61 +1,92 @@
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
-from models.base.id import Id
-from pymongo import UpdateOne
-from pymongo.collection import Collection
+from .config import DatabaseSettings
+from .database import Database, DatabaseUpdate, IdValue
+from .serializing_middleware import (
+    get_application_deserializer,
+    get_application_serializer,
+)
 
-from .serializing_middleware import (get_application_deserializer,
-                                     get_application_serializer)
-
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class BaseDAO(Generic[T]):
+    """Backend-neutral DAO base class.
+
+    BaseDAO serializes/deserializes application objects and delegates primitive
+    persistence operations to Database. Database maps those operations to Mongo
+    or Postgres based on DatabaseSettings without exposing driver-specific types.
+    """
+
     def __init__(
         self,
-        collection: Collection = None,
-        classType: type = None
+        db: Database | None = None,
+        resource_name: str | None = None,
+        classType: type | None = None,
+        settings: DatabaseSettings | None = None,
+        id_field: str = "_id",
     ):
-        self.collection = collection
         self.classType = classType
+        self.id_field = id_field
         self.serializer = get_application_serializer()
         self.deserializer = get_application_deserializer()
+        self.db = db or Database(
+            settings=settings,
+            resource_name=resource_name or self._default_resource_name(classType),
+            id_field=id_field,
+        )
 
-    def save(self, object: T) -> Id:
-        return self.collection.insert_one(self.serializer.serialize(object)).inserted_id
+    def save(self, object: T) -> IdValue:
+        return self.db.save(self.serializer.serialize(object))
 
-    def save_many(self, lst: list[T]) -> list[Id]:
+    def save_many(self, lst: list[T]) -> list[IdValue]:
         serialized = self.serializer.serialize(lst)
-        inserted = self.collection.insert_many(serialized)
-        return inserted
+        return self.db.save_many(serialized)
 
-    def update(self, object: T):
-        self.collection.update_one(self.get_id_criteria(
-            object), self.get_update_query(object))
+    def update(self, object: T) -> None:
+        self.db.update(self.update_request(object))
 
-    def update_request(self, object: T) -> UpdateOne:
-        return UpdateOne(self.get_id_criteria(object), self.get_update_query(object))
+    def update_request(self, object: T) -> DatabaseUpdate:
+        return DatabaseUpdate(
+            entity_id=str(self.get_entity_id(object)),
+            values=self.get_update_record(object),
+        )
 
-    def update_many(self, lst: list[T]):
-        self.collection.bulk_write(
-            [self.update_request(object) for object in lst])
+    def update_many(self, lst: list[T]) -> None:
+        self.db.update_many([self.update_request(object) for object in lst])
 
     def find_all(self) -> list[T]:
-        return self.deserializer.deserialize(value=list(self.collection.find({})), classType=list[self.classType])
+        records = self.db.find_all()
+        return self.deserializer.deserialize(value=records, classType=list[self.classType])
 
-    def find_one_by_condition(self, condition: dict) -> T | None:
-        ret = self.collection.find_one(condition)
-        if ret:
-            return self.deserializer.deserialize(value=ret, classType=self.classType)
+    def find_one_by_condition(self, condition: dict[str, Any]) -> T | None:
+        record = self.db.find_one(condition)
+        if record:
+            return self.deserializer.deserialize(value=record, classType=self.classType)
         return None
 
-    # Save all the fields from the object into mongo
-    def get_update_query(self, object):
-        return {
-            "$set": self.serializer.serialize(object)
-        }
+    def close(self) -> None:
+        self.db.close()
 
-    def get_id_criteria(self, entity: T):
-        return {
-            "_id": entity._id
-        }
+    def get_update_record(self, object: T) -> dict[str, Any]:
+        """Serialize an object into a backend-neutral record for updates."""
+        return self.serializer.serialize(object)
+
+    def get_update_query(self, object: T) -> dict[str, Any]:
+        """Backward-compatible alias for get_update_record.
+
+        This no longer returns a Mongo `$set` query. Concrete database adapters
+        build backend-specific update statements internally.
+        """
+        return self.get_update_record(object)
+
+    def get_id_criteria(self, entity: T) -> dict[str, Any]:
+        return {self.id_field: self.get_entity_id(entity)}
+
+    def get_entity_id(self, entity: T) -> Any:
+        return getattr(entity, self.id_field)
+
+    def _default_resource_name(self, classType: type | None) -> str:
+        if classType is None:
+            raise ValueError("BaseDAO requires either db, resource_name, or classType")
+        return f"{classType.__name__.lower()}s"
