@@ -1,11 +1,9 @@
-from kink import inject
 from models.user.user import User
 
 from db.config import DatabaseSettings
 from db.entity_dao import EntityDAO
 
 
-@inject
 class UserDAO(EntityDAO[User]):
     def __init__(
         self,
