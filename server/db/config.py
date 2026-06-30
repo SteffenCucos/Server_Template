@@ -12,6 +12,7 @@ class DatabaseBackend(str, Enum):
 
     MONGO = "mongo"
     POSTGRES = "postgres"
+    SQLITE = "sqlite"
 
 
 @dataclass(frozen=True)
@@ -31,7 +32,7 @@ class DatabaseSettings:
         """Build settings from environment variables.
 
         Supported variables for the default prefix are:
-        - APP_DB_BACKEND: mongo | postgres
+        - APP_DB_BACKEND: mongo | postgres | sqlite
         - APP_DB_URI: database connection URI
         - APP_DB_NAME: logical database name
         """
@@ -47,4 +48,6 @@ def default_uri_for_backend(backend: DatabaseBackend, database: str) -> str:
         return "mongodb://localhost:27017"
     if backend == DatabaseBackend.POSTGRES:
         return f"postgresql://postgres:postgres@localhost:5432/{database}"
+    if backend == DatabaseBackend.SQLITE:
+        return f"sqlite:///{database}.db"
     raise ValueError(f"unsupported database backend: {backend}")
