@@ -23,10 +23,9 @@ from .serializing_middleware import (
 
 EntityT = TypeVar("EntityT")
 Record = dict[str, Any]
-RepositoryProvider = Callable[[DatabaseSettings], Iterator[Repository[EntityT]]]
 
 
-class PSerializeEntitySerializer(Generic[EntityT], EntitySerializer[EntityT]):
+class PSerializeEntitySerializer(Generic[EntityT]):
     """EntitySerializer backed by the template's pserialize middleware."""
 
     def __init__(self, class_type: type[EntityT]) -> None:
