@@ -1,4 +1,3 @@
-
 import json
 from dataclasses import dataclass
 
@@ -6,8 +5,10 @@ from pserialize import deserialize
 
 
 @dataclass
-class Mongo:
-    connection_string: str
+class DatabaseConfig:
+    backend: str
+    uri: str
+    name: str
 
 
 @dataclass
@@ -18,15 +19,18 @@ class Network:
 
 @dataclass
 class Config:
-    mongo: Mongo
+    database: DatabaseConfig
     network: Network
+
 
 def __fromFile(configPath: str) -> Config:
     with open(configPath, "rb") as configFile:
         configJson = json.loads(configFile.read())
         return configJson
 
+
 __config: Config = None
+
 
 def __get_config() -> Config:
     global __config
@@ -35,7 +39,7 @@ def __get_config() -> Config:
         for n in range(5):
             try:
                 configJson = __fromFile("../" * n + "config.json")
-            except:
+            except Exception:
                 continue
 
         if not configJson:
@@ -46,5 +50,6 @@ def __get_config() -> Config:
             raise Exception("Config is invalid", e)
 
     return __config
+
 
 config: Config = __get_config()

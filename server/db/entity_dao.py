@@ -1,5 +1,3 @@
-
-
 from typing import TypeVar
 
 from models.base.entity import IdEntity
@@ -7,11 +5,10 @@ from models.base.id import Id
 
 from db.base_dao import BaseDAO
 
-T = TypeVar('T', IdEntity, None)
+T = TypeVar("T", IdEntity, None)
 
 
 class EntityDAO(BaseDAO[T]):
-
     def find_one_by_id(self, id: Id) -> T | None:
         return self.find_one_by_condition({"_id": id})
 
@@ -33,8 +30,8 @@ class EntityDAO(BaseDAO[T]):
             EntityDAO.prep_for_save(entity)
         return super().update_many(lst)
 
-    def delete_by_id(self, id: Id):
-        self.collection.delete_one({"_id": id})
+    def delete_by_id(self, id: Id) -> bool:
+        return self.db.delete(str(id))
 
     @staticmethod
     def prep_for_save(entity: T):

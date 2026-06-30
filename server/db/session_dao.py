@@ -1,17 +1,19 @@
-
-
-
 from auth.session.session import Session
-from fastapi import Depends
-from kink import di, inject
-from pymongo.collection import Collection
+from kink import inject
 
+from db.config import DatabaseSettings
 from db.entity_dao import EntityDAO
-from db.mongodb import get_collection
 
 
 @inject
 class SessionDAO(EntityDAO[Session]):
-    def __init__(self, session_collection: Collection = get_collection("server", "sessions")):
-        super().__init__(session_collection, Session)
-    
+    def __init__(
+        self,
+        settings: DatabaseSettings | None = None,
+        resource_name: str = "sessions",
+    ):
+        super().__init__(
+            classType=Session,
+            resource_name=resource_name,
+            settings=settings,
+        )

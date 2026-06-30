@@ -70,6 +70,9 @@ class Database:
         for update in updates:
             self.update(update)
 
+    def delete(self, entity_id: IdValue) -> bool:
+        return self.repository.delete(str(entity_id))
+
     def find_all(self) -> list[Record]:
         return self.repository.list(limit=10_000)
 

@@ -1,6 +1,8 @@
 {
-  "mongo": {
-    "connection_string": "mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb"
+  "database": {
+    "backend": "mongo",
+    "uri": "mongodb://127.0.0.1:27017",
+    "name": "server"
   },
   "network": {
     "host": "localhost",

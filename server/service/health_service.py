@@ -1,19 +1,24 @@
-
 import logging
 
-from db.mongodb import client
+from db import DatabaseSettings, MappingSerializer, create_repository
 
 logger = logging.getLogger(__name__)
 
 
-class HealthService():
-    def __init__(self):
-        pass
-
-    def mongo_health_check(self):
+class HealthService:
+    def database_health_check(self) -> bool:
+        repository = None
         try:
-            client.server_info()
+            repository = create_repository(
+                settings=DatabaseSettings.from_env(),
+                resource_name="health",
+                serializer=MappingSerializer(),
+            )
+            repository.list(limit=1)
             return True
         except Exception as err:
             logger.error(err)
             return False
+        finally:
+            if repository is not None:
+                repository.close()
