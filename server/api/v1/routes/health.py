@@ -6,15 +6,15 @@ from ...v1 import base_route
 
 router = Router(
     prefix=base_route + "/health",
-    tags=["health"]
+    tags=["health"],
 )
+
 
 @router.get("")
 def status(
-    health_service: HealthService = Depends(HealthService)
+    health_service: HealthService = Depends(HealthService),
 ):
-    # https://testfully.io/blog/api-health-check-monitoring/
     return {
         "running": True,
-        "mongodb": health_service.mongo_health_check()
+        "database": health_service.database_health_check(),
     }
