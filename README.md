@@ -12,7 +12,7 @@ Use this repository as a starting point for small API services that need a clean
 - Centralized exception handling pattern.
 - Dependency file for local setup.
 - CLI scaffolder that clones this template into a new app folder.
-- Backend-neutral repository contract with Mongo and Postgres implementations.
+- Backend-neutral repository and DAO database contracts with Mongo and Postgres implementations.
 
 ## Scaffold a new app
 
@@ -54,9 +54,9 @@ python -m server_template new billing-api
 
 ## Database backend abstraction
 
-The template supports choosing between Mongo/NoSQL and Postgres/SQL without exposing `pymongo`, `psycopg`, SQLAlchemy, collection, cursor, or session types to endpoint/service code.
+The template supports choosing between Mongo/NoSQL and Postgres/SQL without exposing `pymongo`, `psycopg`, SQLAlchemy, collection, cursor, session, or bulk-update types to endpoint/service/DAO code.
 
-Application code should depend on the neutral repository protocol under the template app package:
+For repository-style code, depend on the neutral repository protocol under the template app package:
 
 ```python
 from server.db import MappingSerializer, Repository, create_repository
@@ -70,6 +70,32 @@ users: Repository[dict] = create_repository(
 )
 
 users.create({"id": "user-1", "email": "user@example.com"})
+```
+
+For existing DAO-style code, `BaseDAO` now depends on a generic `Database` facade instead of a Mongo collection:
+
+```python
+from server.db.base_dao import BaseDAO
+from server.db.config import DatabaseSettings
+
+settings = DatabaseSettings.from_env()
+users = BaseDAO(
+    classType=User,
+    resource_name="users",
+    settings=settings,
+)
+```
+
+`Database` maps the same primitive operations to Mongo or Postgres internally:
+
+```python
+db.save(record)
+db.save_many(records)
+db.update(DatabaseUpdate(entity_id="entity-id", values={"field": "value"}))
+db.update_many(updates)
+db.find_all()
+db.find_one({"email": "user@example.com"})
+db.close()
 ```
 
 Select the backend with environment variables:
@@ -104,6 +130,11 @@ Concrete backend classes live under `server.db.backends` and handle their own co
 - `MongoRepository` connects to Mongo and maps public `id` to Mongo `_id` internally.
 - `PostgresRepository` connects to Postgres and stores records as `id TEXT PRIMARY KEY` plus JSONB payload by default.
 
+The DAO-facing `Database` facade also handles its own connections internally:
+
+- Mongo maps DAO records to a collection and stores the configured id field as Mongo `_id`.
+- Postgres maps DAO records to `id TEXT PRIMARY KEY` plus JSONB payload.
+
 For domain models, implement `EntitySerializer[T]` so repositories can convert between your app objects and backend-neutral records.
 
 ## Setup this template repo locally
@@ -132,7 +163,9 @@ If the application entry point differs, replace `main:app` with the correct modu
 ├── server/
 │   └── db/
 │       ├── backends/
+│       ├── base_dao.py
 │       ├── config.py
+│       ├── database.py
 │       ├── factory.py
 │       └── repository.py
 ├── requirements.txt
@@ -146,7 +179,7 @@ If the application entry point differs, replace `main:app` with the correct modu
 2. Rename the application/package to match the new service.
 3. Pick `APP_DB_BACKEND=mongo` or `APP_DB_BACKEND=postgres`.
 4. Add domain models and serializers.
-5. Add endpoint modules that depend on `Repository[T]`, not concrete DB drivers.
+5. Add endpoint modules that depend on `Repository[T]`, `BaseDAO[T]`, or `Database`, not concrete DB drivers.
 6. Wire database interfaces or external integrations.
 7. Add tests before using it as a production service.
 

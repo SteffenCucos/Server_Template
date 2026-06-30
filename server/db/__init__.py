@@ -1,18 +1,23 @@
 """Database abstraction layer.
 
-The public repository contract is intentionally backend-neutral. Application code should
-import repository interfaces from this package and let concrete backend modules own
-Mongo/Postgres connection details.
+The public repository and DAO contracts are intentionally backend-neutral.
+Application code should import interfaces from this package and let concrete
+backend adapters own Mongo/Postgres connection details.
 """
 
 from .config import DatabaseBackend, DatabaseSettings
+from .database import Database, DatabaseAdapter, DatabaseUpdate, IdValue
 from .factory import create_repository
 from .repository import EntitySerializer, MappingSerializer, Repository
 
 __all__ = [
+    "Database",
+    "DatabaseAdapter",
     "DatabaseBackend",
     "DatabaseSettings",
+    "DatabaseUpdate",
     "EntitySerializer",
+    "IdValue",
     "MappingSerializer",
     "Repository",
     "create_repository",
