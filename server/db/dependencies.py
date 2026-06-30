@@ -34,10 +34,16 @@ class PSerializeEntitySerializer(Generic[EntityT]):
         self.deserializer = get_application_deserializer()
 
     def to_record(self, entity: EntityT) -> Record:
-        return self.serializer.serialize(entity)
+        record = self.serializer.serialize(entity)
+        if hasattr(entity, "_id") and "_id" not in record:
+            record["_id"] = str(getattr(entity, "_id"))
+        return record
 
     def from_record(self, record: Mapping[str, Any]) -> EntityT:
-        return self.deserializer.deserialize(value=dict(record), classType=self.class_type)
+        entity = self.deserializer.deserialize(value=dict(record), classType=self.class_type)
+        if "_id" in record:
+            setattr(entity, "_id", record["_id"])
+        return entity
 
 
 def get_database_settings() -> DatabaseSettings:
