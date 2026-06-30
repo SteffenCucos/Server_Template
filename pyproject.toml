@@ -9,6 +9,11 @@ description = "FastAPI server template with a CLI scaffolder."
 readme = "README.md"
 requires-python = ">=3.10"
 
+[project.optional-dependencies]
+mongo = ["pymongo"]
+postgres = ["psycopg[binary]"]
+db = ["pymongo", "psycopg[binary]"]
+
 [project.scripts]
 server-template = "server_template.cli:main"
 server-scaffold = "server_template.cli:main"
