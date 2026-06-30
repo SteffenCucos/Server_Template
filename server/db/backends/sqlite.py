@@ -15,6 +15,9 @@ from urllib.parse import urlparse
 
 from ..repository import EntityIdRequiredError, EntitySerializer, EntityT
 
+_MEMORY_SQLITE_URIS = {":memory:", "sqlite:///:memory:"}
+_SHARED_MEMORY_CONNECTIONS: dict[str, sqlite3.Connection] = {}
+
 
 class SQLiteRepository(Generic[EntityT]):
     """Repository implementation backed by SQLite."""
@@ -29,7 +32,7 @@ class SQLiteRepository(Generic[EntityT]):
         data_column: str = "data",
         ensure_table: bool = True,
     ) -> None:
-        self._connection = sqlite3.connect(_sqlite_path_from_uri(uri))
+        self._connection, self._owns_connection = _create_sqlite_connection(uri)
         self._connection.row_factory = sqlite3.Row
         self._table = table
         self._serializer = serializer
@@ -46,7 +49,7 @@ class SQLiteRepository(Generic[EntityT]):
 
         self._connection.execute(
             f'INSERT INTO "{self._table}" (id, "{self._data_column}") VALUES (?, ?)',
-            (entity_id, json.dumps(payload)),
+            (entity_id, json.dumps(payload, default=str)),
         )
         self._connection.commit()
         return self.get_by_id(entity_id)
@@ -93,7 +96,7 @@ class SQLiteRepository(Generic[EntityT]):
         payload = self._payload_without_id(record)
         self._connection.execute(
             f'UPDATE "{self._table}" SET "{self._data_column}" = ? WHERE id = ?',
-            (json.dumps(payload), entity_id),
+            (json.dumps(payload, default=str), entity_id),
         )
         self._connection.commit()
         return self.get_by_id(entity_id)
@@ -107,7 +110,8 @@ class SQLiteRepository(Generic[EntityT]):
         return cursor.rowcount > 0
 
     def close(self) -> None:
-        self._connection.close()
+        if self._owns_connection:
+            self._connection.close()
 
     def _ensure_table(self) -> None:
         self._connection.execute(
@@ -131,16 +135,19 @@ class SQLiteRepository(Generic[EntityT]):
         return self._serializer.from_record(record)
 
 
-def _sqlite_path_from_uri(uri: str) -> str:
-    if uri in {":memory:", "sqlite:///:memory:"}:
-        return ":memory:"
+def _create_sqlite_connection(uri: str) -> tuple[sqlite3.Connection, bool]:
+    if uri in _MEMORY_SQLITE_URIS:
+        if uri not in _SHARED_MEMORY_CONNECTIONS:
+            _SHARED_MEMORY_CONNECTIONS[uri] = sqlite3.connect(":memory:", check_same_thread=False)
+        return _SHARED_MEMORY_CONNECTIONS[uri], False
 
+    return sqlite3.connect(_sqlite_path_from_uri(uri), check_same_thread=False), True
+
+
+def _sqlite_path_from_uri(uri: str) -> str:
     parsed = urlparse(uri)
     if parsed.scheme != "sqlite":
         return uri
-
-    if parsed.path in {"", "/:memory:"}:
-        return ":memory:"
 
     path = parsed.path
     if path.startswith("/") and not path.startswith("//"):
