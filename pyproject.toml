@@ -10,9 +10,11 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-mongo = ["pymongo"]
+mongo = ["pymongo", "pymongo_inmemory"]
 postgres = ["psycopg[binary]"]
-db = ["pymongo", "psycopg[binary]"]
+sqlite = []
+db = ["pymongo", "pymongo_inmemory", "psycopg[binary]"]
+test = ["pytest", "httpx", "pymongo", "pymongo_inmemory"]
 
 [project.scripts]
 server-template = "server_template.cli:main"
