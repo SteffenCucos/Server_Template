@@ -12,6 +12,7 @@ Use this repository as a starting point for small API services that need a clean
 - Centralized exception handling pattern.
 - Dependency file for local setup.
 - CLI scaffolder that clones this template into a new app folder.
+- Backend-neutral repository contract with Mongo and Postgres implementations.
 
 ## Scaffold a new app
 
@@ -51,6 +52,60 @@ You can also run the CLI as a module from a checkout of this repo:
 python -m server_template new billing-api
 ```
 
+## Database backend abstraction
+
+The template supports choosing between Mongo/NoSQL and Postgres/SQL without exposing `pymongo`, `psycopg`, SQLAlchemy, collection, cursor, or session types to endpoint/service code.
+
+Application code should depend on the neutral repository protocol:
+
+```python
+from server_template.db import MappingSerializer, Repository, create_repository
+from server_template.db.config import DatabaseSettings
+
+settings = DatabaseSettings.from_env()
+users: Repository[dict] = create_repository(
+    settings=settings,
+    resource_name="users",
+    serializer=MappingSerializer(),
+)
+
+users.create({"id": "user-1", "email": "user@example.com"})
+```
+
+Select the backend with environment variables:
+
+```bash
+APP_DB_BACKEND=mongo
+APP_DB_URI=mongodb://localhost:27017
+APP_DB_NAME=my_app
+```
+
+or:
+
+```bash
+APP_DB_BACKEND=postgres
+APP_DB_URI=postgresql://postgres:postgres@localhost:5432/my_app
+APP_DB_NAME=my_app
+```
+
+The repository interface intentionally only exposes application entities and primitive Python values:
+
+```python
+repo.create(entity)
+repo.get_by_id("entity-id")
+repo.list(limit=100, offset=0)
+repo.update("entity-id", {"field": "value"})
+repo.delete("entity-id")
+repo.close()
+```
+
+Concrete backend classes live under `server_template.db.backends` and handle their own connections internally:
+
+- `MongoRepository` connects to Mongo and maps public `id` to Mongo `_id` internally.
+- `PostgresRepository` connects to Postgres and stores records as `id TEXT PRIMARY KEY` plus JSONB payload by default.
+
+For domain models, implement `EntitySerializer[T]` so repositories can convert between your app objects and backend-neutral records.
+
 ## Setup this template repo locally
 
 Install dependencies from the repository root:
@@ -76,6 +131,11 @@ If the application entry point differs, replace `main:app` with the correct modu
 ├── models/
 ├── db/
 ├── server_template/
+│   └── db/
+│       ├── backends/
+│       ├── config.py
+│       ├── factory.py
+│       └── repository.py
 ├── requirements.txt
 ├── pyproject.toml
 └── README.md
@@ -85,10 +145,11 @@ If the application entry point differs, replace `main:app` with the correct modu
 
 1. Clone or copy the repository.
 2. Rename the application/package to match the new service.
-3. Add domain models.
-4. Add endpoint modules.
-5. Wire database interfaces or external integrations.
-6. Add tests before using it as a production service.
+3. Pick `APP_DB_BACKEND=mongo` or `APP_DB_BACKEND=postgres`.
+4. Add domain models and serializers.
+5. Add endpoint modules that depend on `Repository[T]`, not concrete DB drivers.
+6. Wire database interfaces or external integrations.
+7. Add tests before using it as a production service.
 
 ## Status
 
