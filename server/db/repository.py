@@ -1,0 +1,84 @@
+"""Backend-neutral repository contracts.
+
+Repository interfaces should expose only application concepts and primitive Python
+values. Concrete backend implementations own all driver-specific concerns.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
+
+EntityT = TypeVar("EntityT")
+Record = dict[str, Any]
+
+
+@runtime_checkable
+class EntitySerializer(Protocol[EntityT]):
+    """Convert between application entities and plain persistence records.
+
+    Implement this per model when your entity is a dataclass, Pydantic model, or
+    other domain object. The returned record must contain only JSON-like Python
+    values if it is going to be stored by both Mongo and Postgres backends.
+    """
+
+    def to_record(self, entity: EntityT) -> Record:
+        """Convert an application entity to a backend-neutral record."""
+        ...
+
+    def from_record(self, record: Mapping[str, Any]) -> EntityT:
+        """Convert a backend-neutral record to an application entity."""
+        ...
+
+
+class MappingSerializer(EntitySerializer[Record]):
+    """Pass-through serializer for apps that use dict records directly."""
+
+    def to_record(self, entity: Record) -> Record:
+        return dict(entity)
+
+    def from_record(self, record: Mapping[str, Any]) -> Record:
+        return dict(record)
+
+
+@runtime_checkable
+class Repository(Protocol[EntityT]):
+    """Minimal CRUD contract shared by every storage backend.
+
+    This protocol intentionally avoids pymongo, psycopg, SQLAlchemy, cursor,
+    collection, query-builder, or transaction/session types. Backend-specific
+    implementations can use those internally, but endpoint/service code should
+    only depend on this protocol.
+    """
+
+    def create(self, entity: EntityT) -> EntityT:
+        """Persist a new entity and return the stored entity."""
+        ...
+
+    def get_by_id(self, entity_id: str) -> EntityT | None:
+        """Return one entity by public id, or None when not found."""
+        ...
+
+    def list(self, *, limit: int = 100, offset: int = 0) -> list[EntityT]:
+        """Return entities in deterministic backend order."""
+        ...
+
+    def update(self, entity_id: str, changes: Mapping[str, Any]) -> EntityT | None:
+        """Patch primitive field values and return the updated entity."""
+        ...
+
+    def delete(self, entity_id: str) -> bool:
+        """Delete one entity by public id and return whether anything changed."""
+        ...
+
+    def close(self) -> None:
+        """Release backend resources held by this repository."""
+        ...
+
+
+class RepositoryError(RuntimeError):
+    """Base exception for repository failures."""
+
+
+class EntityIdRequiredError(RepositoryError):
+    """Raised when an entity cannot be persisted because it has no id field."""
