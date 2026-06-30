@@ -1,0 +1,58 @@
+name: Scaffold API tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  api-tests:
+    name: API tests (${{ matrix.backend }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: mongo
+            uri: memory://
+          - backend: sqlite
+            uri: sqlite:///:memory:
+
+    env:
+      TEST_SCAFOLD_APP_ROOT: ${{ github.workspace }}/test-scafold/app
+      APP_DB_BACKEND: ${{ matrix.backend }}
+      APP_DB_URI: ${{ matrix.uri }}
+      APP_DB_NAME: scaffold_api_tests
+      PYTHONPATH: ${{ github.workspace }}/test-scafold/app/server:${{ github.workspace }}/test-scafold/app
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install template CLI and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test]"
+
+      - name: Generate scaffold app with CLI
+        run: |
+          rm -rf test-scafold/app
+          server-template new test-scafold-app \
+            --target-dir test-scafold/app \
+            --repo "file://${GITHUB_WORKSPACE}" \
+            --branch "" \
+            --force
+
+      - name: Install scaffold dependencies
+        run: |
+          python -m pip install -r test-scafold/app/requirements.txt
+          python -m pip install pytest httpx pymongo_inmemory
+
+      - name: Run scaffold API tests
+        run: python -m pytest test-scafold/tests -q
