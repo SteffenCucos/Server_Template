@@ -6,3 +6,4 @@ psycopg[binary] # Postgres driver
 requests # httpm
 pserialization # Serialization library
 pytest # testing
+httpx # FastAPI test client

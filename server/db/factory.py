@@ -19,9 +19,9 @@ def create_repository(
 ) -> Repository[EntityT]:
     """Create a repository for the configured backend.
 
-    resource_name maps to a Mongo collection for the Mongo backend and a SQL
-    table for the Postgres backend. The returned object satisfies the
-    backend-neutral Repository protocol.
+    resource_name maps to a Mongo collection for Mongo and to a SQL table for
+    Postgres/SQLite. The returned object satisfies the backend-neutral
+    Repository protocol.
     """
     if settings.backend == DatabaseBackend.MONGO:
         from .backends.mongo import MongoRepository
@@ -38,6 +38,16 @@ def create_repository(
         from .backends.postgres import PostgresRepository
 
         return PostgresRepository(
+            uri=settings.uri,
+            table=resource_name,
+            serializer=serializer,
+            id_field=id_field,
+        )
+
+    if settings.backend == DatabaseBackend.SQLITE:
+        from .backends.sqlite import SQLiteRepository
+
+        return SQLiteRepository(
             uri=settings.uri,
             table=resource_name,
             serializer=serializer,

@@ -7,6 +7,9 @@ from typing import Any, Generic
 
 from ..repository import EntityIdRequiredError, EntitySerializer, EntityT
 
+MEMORY_MONGO_URIS = {"memory://", "mongo://memory", "mongodb://memory", "mongodb://in-memory"}
+_SHARED_MEMORY_CLIENTS: dict[str, object] = {}
+
 
 class MongoRepository(Generic[EntityT]):
     """Repository implementation backed by MongoDB.
@@ -24,9 +27,7 @@ class MongoRepository(Generic[EntityT]):
         serializer: EntitySerializer[EntityT],
         id_field: str = "id",
     ) -> None:
-        from pymongo import MongoClient
-
-        self._client = MongoClient(uri)
+        self._client, self._owns_client = _create_mongo_client(uri)
         self._collection = self._client[database][collection]
         self._serializer = serializer
         self._id_field = id_field
@@ -73,7 +74,8 @@ class MongoRepository(Generic[EntityT]):
         return result.deleted_count > 0
 
     def close(self) -> None:
-        self._client.close()
+        if self._owns_client:
+            self._client.close()
 
     def _to_backend_record(self, record: Mapping[str, Any]) -> dict[str, Any]:
         backend_record = dict(record)
@@ -108,3 +110,16 @@ class MongoRepository(Generic[EntityT]):
         if "_id" in public_record:
             public_record[self._id_field] = str(public_record.pop("_id"))
         return self._serializer.from_record(public_record)
+
+
+def _create_mongo_client(uri: str):
+    if uri in MEMORY_MONGO_URIS:
+        from pymongo_inmemory import MongoClient
+
+        if uri not in _SHARED_MEMORY_CLIENTS:
+            _SHARED_MEMORY_CLIENTS[uri] = MongoClient()
+        return _SHARED_MEMORY_CLIENTS[uri], False
+
+    from pymongo import MongoClient
+
+    return MongoClient(uri), True
