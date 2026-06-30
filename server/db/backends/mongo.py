@@ -42,6 +42,12 @@ class MongoRepository(Generic[EntityT]):
             return None
         return self._from_backend_record(record)
 
+    def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
+        record = self._collection.find_one(self._to_backend_condition(condition))
+        if record is None:
+            return None
+        return self._from_backend_record(record)
+
     def list(self, *, limit: int = 100, offset: int = 0) -> list[EntityT]:
         cursor = self._collection.find({}).sort("_id", 1).skip(offset).limit(limit)
         return [self._from_backend_record(record) for record in cursor]
@@ -88,6 +94,14 @@ class MongoRepository(Generic[EntityT]):
         if "_id" in patch:
             patch.pop("_id")
         return patch
+
+    def _to_backend_condition(self, condition: Mapping[str, Any]) -> dict[str, Any]:
+        query = dict(condition)
+        if self._id_field in query:
+            query["_id"] = str(query.pop(self._id_field))
+        if "_id" in query:
+            query["_id"] = str(query["_id"])
+        return query
 
     def _from_backend_record(self, record: Mapping[str, Any]) -> EntityT:
         public_record = dict(record)
