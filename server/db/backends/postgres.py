@@ -69,6 +69,22 @@ class PostgresRepository(Generic[EntityT]):
             return None
         return self._row_to_entity(row)
 
+    def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
+        if not condition:
+            entities = self.list(limit=1)
+            return entities[0] if entities else None
+
+        if len(condition) == 1:
+            field, value = next(iter(condition.items()))
+            if field in {self._id_field, "_id", "id"}:
+                return self.get_by_id(str(value))
+
+        for entity in self.list(limit=10_000):
+            record = self._serializer.to_record(entity)
+            if all(str(record.get(field)) == str(value) for field, value in condition.items()):
+                return entity
+        return None
+
     def list(self, *, limit: int = 100, offset: int = 0) -> list[EntityT]:
         from psycopg import sql
 
