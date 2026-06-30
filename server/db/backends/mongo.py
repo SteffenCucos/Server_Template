@@ -7,6 +7,8 @@ from typing import Any, Generic
 
 from ..repository import EntityIdRequiredError, EntitySerializer, EntityT
 
+MEMORY_MONGO_URIS = {"memory://", "mongo://memory", "mongodb://memory", "mongodb://in-memory"}
+
 
 class MongoRepository(Generic[EntityT]):
     """Repository implementation backed by MongoDB.
@@ -24,9 +26,7 @@ class MongoRepository(Generic[EntityT]):
         serializer: EntitySerializer[EntityT],
         id_field: str = "id",
     ) -> None:
-        from pymongo import MongoClient
-
-        self._client = MongoClient(uri)
+        self._client = _create_mongo_client(uri)
         self._collection = self._client[database][collection]
         self._serializer = serializer
         self._id_field = id_field
@@ -108,3 +108,14 @@ class MongoRepository(Generic[EntityT]):
         if "_id" in public_record:
             public_record[self._id_field] = str(public_record.pop("_id"))
         return self._serializer.from_record(public_record)
+
+
+def _create_mongo_client(uri: str):
+    if uri in MEMORY_MONGO_URIS:
+        from pymongo_inmemory import MongoClient
+
+        return MongoClient()
+
+    from pymongo import MongoClient
+
+    return MongoClient(uri)
