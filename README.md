@@ -13,6 +13,7 @@ Use this repository as a starting point for small API services that need a clean
 - Dependency file for local setup.
 - CLI scaffolder that clones this template into a new app folder.
 - Backend-neutral repository and DAO database contracts with Mongo and Postgres implementations.
+- FastAPI-native dependency providers for request-scoped repositories and services.
 
 ## Scaffold a new app
 
@@ -72,7 +73,39 @@ users: Repository[dict] = create_repository(
 users.create({"id": "user-1", "email": "user@example.com"})
 ```
 
-For existing DAO-style code, `BaseDAO` now depends on a generic `Database` facade instead of a Mongo collection:
+Prefer FastAPI dependency injection at the endpoint boundary. Existing typed aliases can be used directly:
+
+```python
+from server.db.dependencies import UserRepository
+
+@router.get("/users")
+def list_users(users: UserRepository):
+    return users.list(limit=100)
+```
+
+For custom models, create a request-scoped repository dependency once and reuse it:
+
+```python
+from typing import Annotated
+
+from fastapi import Depends
+from server.db import Repository
+from server.db.dependencies import PSerializeEntitySerializer, repository_dependency
+
+ProjectRepository = Annotated[
+    Repository[Project],
+    Depends(repository_dependency(
+        resource_name="projects",
+        serializer=PSerializeEntitySerializer(Project),
+    )),
+]
+
+@router.get("/projects")
+def list_projects(projects: ProjectRepository):
+    return projects.list(limit=100)
+```
+
+For existing DAO-style code, `BaseDAO` depends on a generic `Database` facade instead of a Mongo collection:
 
 ```python
 from server.db.base_dao import BaseDAO
@@ -119,6 +152,7 @@ The repository interface intentionally only exposes application entities and pri
 ```python
 repo.create(entity)
 repo.get_by_id("entity-id")
+repo.find_one({"email": "user@example.com"})
 repo.list(limit=100, offset=0)
 repo.update("entity-id", {"field": "value"})
 repo.delete("entity-id")
@@ -166,6 +200,7 @@ If the application entry point differs, replace `main:app` with the correct modu
 │       ├── base_dao.py
 │       ├── config.py
 │       ├── database.py
+│       ├── dependencies.py
 │       ├── factory.py
 │       └── repository.py
 ├── requirements.txt
@@ -180,7 +215,7 @@ If the application entry point differs, replace `main:app` with the correct modu
 3. Pick `APP_DB_BACKEND=mongo` or `APP_DB_BACKEND=postgres`.
 4. Add domain models and serializers.
 5. Add endpoint modules that depend on `Repository[T]`, `BaseDAO[T]`, or `Database`, not concrete DB drivers.
-6. Wire database interfaces or external integrations.
+6. Prefer FastAPI `Depends(...)` providers for repositories and services.
 7. Add tests before using it as a production service.
 
 ## Status
