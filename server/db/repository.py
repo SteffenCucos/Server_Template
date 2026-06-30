@@ -7,7 +7,7 @@ values. Concrete backend implementations own all driver-specific concerns.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
+from typing import Any, Protocol, TypeVar, runtime_checkable
 
 EntityT = TypeVar("EntityT")
 Record = dict[str, Any]
@@ -57,6 +57,10 @@ class Repository(Protocol[EntityT]):
 
     def get_by_id(self, entity_id: str) -> EntityT | None:
         """Return one entity by public id, or None when not found."""
+        ...
+
+    def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
+        """Return one entity matching a primitive equality condition."""
         ...
 
     def list(self, *, limit: int = 100, offset: int = 0) -> list[EntityT]:
