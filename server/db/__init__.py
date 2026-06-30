@@ -1,5 +1,19 @@
-"""Database access package.
+"""Database abstraction layer.
 
-Contains persistence helpers and database client setup for the template server.
-The current implementation centers on MongoDB access with an in-memory fallback.
+The public repository contract is intentionally backend-neutral. Application code should
+import repository interfaces from this package and let concrete backend modules own
+Mongo/Postgres connection details.
 """
+
+from .config import DatabaseBackend, DatabaseSettings
+from .factory import create_repository
+from .repository import EntitySerializer, MappingSerializer, Repository
+
+__all__ = [
+    "DatabaseBackend",
+    "DatabaseSettings",
+    "EntitySerializer",
+    "MappingSerializer",
+    "Repository",
+    "create_repository",
+]
