@@ -31,7 +31,7 @@ class EntityDAO(BaseDAO[T]):
         return super().update_many(lst)
 
     def delete_by_id(self, id: Id) -> bool:
-        return self.db.repository.delete(str(id))
+        return self.db.delete(str(id))
 
     @staticmethod
     def prep_for_save(entity: T):
