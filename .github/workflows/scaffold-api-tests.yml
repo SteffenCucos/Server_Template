@@ -15,16 +15,16 @@ jobs:
       matrix:
         include:
           - backend: mongo
-            uri: memory://
+            uri: "memory://"
           - backend: sqlite
-            uri: sqlite:///:memory:
+            uri: "sqlite:///:memory:"
 
     env:
       TEST_SCAFOLD_APP_ROOT: ${{ github.workspace }}/test-scafold/app
       APP_DB_BACKEND: ${{ matrix.backend }}
       APP_DB_URI: ${{ matrix.uri }}
       APP_DB_NAME: scaffold_api_tests
-      PYTHONPATH: ${{ github.workspace }}/test-scafold/app/server:${{ github.workspace }}/test-scafold/app
+      PYTHONPATH: "${{ github.workspace }}/test-scafold/app/server:${{ github.workspace }}/test-scafold/app"
 
     steps:
       - name: Check out repository
