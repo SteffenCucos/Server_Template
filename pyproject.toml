@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "server-template"
+version = "0.1.0"
+description = "FastAPI server template with a CLI scaffolder."
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.scripts]
+server-template = "server_template.cli:main"
+server-scaffold = "server_template.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["server_template*"]
