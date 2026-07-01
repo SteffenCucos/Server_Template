@@ -6,10 +6,6 @@ concrete repository implementations own Mongo/Postgres/SQLite connection details
 
 from .config import DatabaseBackend, DatabaseSettings
 from .dependencies import (
-    SessionDAODep,
-    SessionRepository,
-    UserDAODep,
-    UserRepository,
     get_database_settings,
     get_session_dao,
     get_session_repository,
@@ -33,11 +29,7 @@ __all__ = [
     "PSerializeEntitySerializer",
     "Repository",
     "SessionDAO",
-    "SessionDAODep",
-    "SessionRepository",
     "UserDAO",
-    "UserDAODep",
-    "UserRepository",
     "create_repository",
     "get_database_settings",
     "get_session_dao",
