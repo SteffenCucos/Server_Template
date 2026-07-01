@@ -1,39 +1,48 @@
 """Database abstraction layer.
 
-The public repository and DAO contracts are intentionally backend-neutral.
-Application code should import interfaces from this package and let concrete
-repository implementations own Mongo/Postgres connection details.
+Application code should depend on entity DAOs and repository interfaces while
+concrete repository implementations own Mongo/Postgres/SQLite connection details.
 """
 
 from .config import DatabaseBackend, DatabaseSettings
-from .database import Database, DatabaseUpdate, IdValue
 from .dependencies import (
     PSerializeEntitySerializer,
+    SessionDAODep,
     SessionRepository,
+    UserDAODep,
     UserRepository,
     get_database_settings,
+    get_session_dao,
     get_session_repository,
+    get_user_dao,
     get_user_repository,
     repository_dependency,
 )
+from .entity_dao import EntityDAO
 from .factory import create_repository
 from .repository import EntitySerializer, MappingSerializer, Repository
+from .session_dao import SessionDAO
+from .user_dao import UserDAO
 
 __all__ = [
-    "Database",
     "DatabaseBackend",
     "DatabaseSettings",
-    "DatabaseUpdate",
+    "EntityDAO",
     "EntitySerializer",
-    "IdValue",
     "MappingSerializer",
     "PSerializeEntitySerializer",
     "Repository",
+    "SessionDAO",
+    "SessionDAODep",
     "SessionRepository",
+    "UserDAO",
+    "UserDAODep",
     "UserRepository",
     "create_repository",
     "get_database_settings",
+    "get_session_dao",
     "get_session_repository",
+    "get_user_dao",
     "get_user_repository",
     "repository_dependency",
 ]
