@@ -10,16 +10,16 @@ import json
 import sqlite3
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Generic
+from typing import Any
 from urllib.parse import urlparse
 
-from ..repository import EntityIdRequiredError, EntitySerializer, EntityT
+from ..repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
 _MEMORY_SQLITE_URIS = {":memory:", "sqlite:///:memory:"}
 _SHARED_MEMORY_CONNECTIONS: dict[str, sqlite3.Connection] = {}
 
 
-class SQLiteRepository(Generic[EntityT]):
+class SQLiteRepository(Repository[EntityT]):
     """Repository implementation backed by SQLite."""
 
     def __init__(
