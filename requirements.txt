@@ -1,6 +1,6 @@
 FastAPI # API library
 uvicorn # Web server
-pymongo # Mongo driver
+pymongo<4.11 # Mongo driver
 pymongo_inmemory # In memory mongo driver
 psycopg[binary] # Postgres driver
 requests # httpm
