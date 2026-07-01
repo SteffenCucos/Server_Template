@@ -6,69 +6,21 @@ and `SessionDAODep` without knowing which concrete database backend is active.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Mapping
-from dataclasses import fields, is_dataclass
-from typing import Annotated, Any, Generic, TypeVar
+from collections.abc import Callable, Iterator
+from typing import Annotated, TypeVar
 
 from auth.session.session import Session
 from fastapi import Depends
-from models.base.id import Id
 from models.user.user import User
 
 from .config import DatabaseSettings
 from .factory import create_repository
+from .pserialize_entity_serializer import PSerializeEntitySerializer
 from .repository import EntitySerializer, Repository
-from .serializing_middleware import (
-    get_application_deserializer,
-    get_application_serializer,
-)
 from .session_dao import SessionDAO
 from .user_dao import UserDAO
 
 EntityT = TypeVar("EntityT")
-Record = dict[str, Any]
-
-
-class PSerializeEntitySerializer(Generic[EntityT]):
-    """EntitySerializer backed by the template's pserialize middleware."""
-
-    def __init__(self, class_type: type[EntityT]) -> None:
-        self.class_type = class_type
-        self.serializer = get_application_serializer()
-        self.deserializer = get_application_deserializer()
-        self.constructor_fields = _constructor_fields(class_type)
-
-    def to_record(self, entity: EntityT) -> Record:
-        record = self.serializer.serialize(entity)
-        if hasattr(entity, "_id") and "_id" not in record:
-            record["_id"] = str(getattr(entity, "_id"))
-        return record
-
-    def from_record(self, record: Mapping[str, Any]) -> EntityT:
-        record_dict = dict(record)
-        constructor_record = {
-            key: value
-            for key, value in record_dict.items()
-            if key in self.constructor_fields
-        }
-        entity = self.deserializer.deserialize(
-            value=constructor_record,
-            classType=self.class_type,
-        )
-
-        for key, value in record_dict.items():
-            if key == "_id":
-                setattr(entity, key, Id(str(value)))
-            elif key not in self.constructor_fields:
-                setattr(entity, key, value)
-
-        return entity
-
-
-def _constructor_fields(class_type: type[Any]) -> set[str]:
-    if not is_dataclass(class_type):
-        return set()
-    return {field.name for field in fields(class_type) if field.init}
 
 
 def get_database_settings() -> DatabaseSettings:
