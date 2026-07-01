@@ -1,7 +1,7 @@
 """FastAPI dependency providers for repository and DAO injection.
 
-Endpoints and services can depend on typed DAO aliases such as `UserDAODep`
-and `SessionDAODep` without knowing which concrete database backend is active.
+Endpoints and services can depend on explicit dependency providers without
+knowing which concrete database backend is active.
 """
 
 from __future__ import annotations
@@ -63,17 +63,14 @@ get_session_repository = repository_dependency(
     serializer=PSerializeEntitySerializer(Session),
 )
 
-UserRepository = Annotated[Repository[User], Depends(get_user_repository)]
-SessionRepository = Annotated[Repository[Session], Depends(get_session_repository)]
 
-
-def get_user_dao(user_repository: UserRepository) -> UserDAO:
+def get_user_dao(
+    user_repository: Annotated[Repository[User], Depends(get_user_repository)],
+) -> UserDAO:
     return UserDAO(user_repository)
 
 
-def get_session_dao(session_repository: SessionRepository) -> SessionDAO:
+def get_session_dao(
+    session_repository: Annotated[Repository[Session], Depends(get_session_repository)],
+) -> SessionDAO:
     return SessionDAO(session_repository)
-
-
-UserDAODep = Annotated[UserDAO, Depends(get_user_dao)]
-SessionDAODep = Annotated[SessionDAO, Depends(get_session_dao)]
