@@ -97,7 +97,7 @@ Concrete repository implementations live under `server/db/backends` and own driv
 
 ## FastAPI dependency injection
 
-Prefer injecting services into endpoints. Services depend on DAOs, and DAOs depend on repositories.
+Prefer injecting services into endpoints. Services depend on DAOs, and DAOs depend on repositories. Keep `Depends(...)` visible at the point where each dependency is requested instead of hiding it behind type aliases.
 
 ```python
 from typing import Annotated
@@ -107,20 +107,36 @@ from db.dependencies import repository_dependency
 from db.pserialize_entity_serializer import PSerializeEntitySerializer
 from db.repository import Repository
 
-ProjectRepository = Annotated[
-    Repository[Project],
-    Depends(repository_dependency(
-        resource_name="projects",
-        serializer=PSerializeEntitySerializer(Project),
-    )),
-]
+get_project_repository = repository_dependency(
+    resource_name="projects",
+    serializer=PSerializeEntitySerializer(Project),
+)
+
+
+def get_project_dao(
+    project_repository: Annotated[Repository[Project], Depends(get_project_repository)],
+) -> ProjectDAO:
+    return ProjectDAO(project_repository)
 ```
 
-Then wire the DAO and service once in a dependency module:
+Then wire the service explicitly as well:
 
 ```python
-def get_project_dao(projects: ProjectRepository) -> ProjectDAO:
-    return ProjectDAO(projects)
+def get_project_service(
+    project_dao: Annotated[ProjectDAO, Depends(get_project_dao)],
+) -> ProjectService:
+    return ProjectService(project_dao)
+```
+
+Endpoints should also inline their dependency annotations:
+
+```python
+@router.get("/{project_id}")
+def get_project(
+    project_id: str,
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
+) -> Project:
+    ...
 ```
 
 The template includes ready-made `UserDAO`, `SessionDAO`, and service dependency providers for the starter user/session routes.
