@@ -7,7 +7,6 @@ from api.exceptions import NotFoundException
 from api.router import Router
 from api.v1 import base_route
 from fastapi import Depends
-from models.base.id import Id
 from models.user.user import User
 from service.dependencies import get_session_service, get_user_service
 from service.session_service import SessionService
@@ -27,9 +26,9 @@ SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]
 def create_user(
     user_request: CreateUserRequest,
     user_service: UserServiceDep,
-) -> Id:
+) -> str:
     user = user_service.create_user(user_request)
-    return user._id
+    return str(user._id)
 
 
 @router.get("")
@@ -48,7 +47,7 @@ def get_all_users(
 @authenticated()
 @check_permission("read/users/{user_id}")
 def get_user(
-    user_id: Id,
+    user_id: str,
     user_service: UserServiceDep,
 ) -> User:
     user = user_service.get_user(user_id)
