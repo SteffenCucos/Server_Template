@@ -49,6 +49,14 @@ jobs:
             --branch "" \
             --force
 
+      - name: Upload generated scaffold app
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generated-scaffold-app-${{ matrix.backend }}
+          path: test-scafold/app
+          if-no-files-found: error
+
       - name: Install scaffold dependencies
         run: |
           python -m pip install -r test-scafold/app/requirements.txt
