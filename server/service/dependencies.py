@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from db.dependency_wiring import get_session_dao, get_user_dao
+from db.dependencies import get_session_dao, get_user_dao
 from db.session_dao import SessionDAO
 from db.user_dao import UserDAO
 from fastapi import Depends
