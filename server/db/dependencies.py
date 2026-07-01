@@ -1,7 +1,7 @@
-"""FastAPI dependency providers for repository injection.
+"""FastAPI dependency providers for repository and DAO injection.
 
-Endpoints can depend on typed repository aliases such as `UserRepository` and
-`SessionRepository` without knowing which concrete database backend is active.
+Endpoints and services can depend on typed DAO aliases such as `UserDAODep`
+and `SessionDAODep` without knowing which concrete database backend is active.
 """
 
 from __future__ import annotations
@@ -22,6 +22,8 @@ from .serializing_middleware import (
     get_application_deserializer,
     get_application_serializer,
 )
+from .session_dao import SessionDAO
+from .user_dao import UserDAO
 
 EntityT = TypeVar("EntityT")
 Record = dict[str, Any]
@@ -80,11 +82,7 @@ def repository_dependency(
     serializer: EntitySerializer[EntityT],
     id_field: str = "_id",
 ) -> Callable[..., Iterator[Repository[EntityT]]]:
-    """Create a FastAPI dependency for a typed repository.
-
-    The dependency opens the concrete repository for the configured backend and
-    closes it when the request finishes.
-    """
+    """Create a FastAPI dependency for a typed repository."""
 
     def get_repository(
         settings: DatabaseSettings = Depends(get_database_settings),
@@ -115,3 +113,15 @@ get_session_repository = repository_dependency(
 
 UserRepository = Annotated[Repository[User], Depends(get_user_repository)]
 SessionRepository = Annotated[Repository[Session], Depends(get_session_repository)]
+
+
+def get_user_dao(user_repository: UserRepository) -> UserDAO:
+    return UserDAO(user_repository)
+
+
+def get_session_dao(session_repository: SessionRepository) -> SessionDAO:
+    return SessionDAO(session_repository)
+
+
+UserDAODep = Annotated[UserDAO, Depends(get_user_dao)]
+SessionDAODep = Annotated[SessionDAO, Depends(get_session_dao)]
