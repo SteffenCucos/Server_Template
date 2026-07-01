@@ -93,7 +93,9 @@ class ProjectDAO(EntityDAO[Project]):
         return self.find_one({"name": name})
 ```
 
-Concrete repository implementations live under `server/db/backends` and own driver-specific connection details. Endpoint, service, and DAO code should not use `pymongo`, `psycopg`, SQLAlchemy, collection, cursor, or transaction/session types directly.
+Concrete repository implementations live under `server/db/backends`. Database connection construction lives under `server/db/connection`, repository selection lives under `server/db/repository_creation`, and FastAPI database wiring lives under `server/db/dependency_wiring`.
+
+Endpoint, service, and DAO code should not use `pymongo`, `psycopg`, SQLAlchemy, collection, cursor, or transaction/session types directly.
 
 ## FastAPI dependency injection
 
@@ -103,7 +105,7 @@ Prefer injecting services into endpoints. Services depend on DAOs, and DAOs depe
 from typing import Annotated
 
 from fastapi import Depends
-from db.dependencies import repository_dependency
+from db.dependency_wiring import repository_dependency
 from db.pserialize_entity_serializer import PSerializeEntitySerializer
 from db.repository import Repository
 
@@ -205,10 +207,19 @@ If the application entry point differs, replace `main:app` with the correct modu
 ├── server/
 │   └── db/
 │       ├── backends/
-│       ├── config.py
-│       ├── dependencies.py
+│       ├── connection/
+│       │   ├── mongo.py
+│       │   ├── postgres.py
+│       │   ├── settings.py
+│       │   └── sqlite.py
+│       ├── dependency_wiring/
+│       │   └── repositories.py
+│       ├── repository_creation/
+│       │   └── factory.py
+│       ├── config.py                 # compatibility shim
+│       ├── dependencies.py           # compatibility shim
 │       ├── entity_dao.py
-│       ├── factory.py
+│       ├── factory.py                # compatibility shim
 │       ├── pserialize_entity_serializer.py
 │       ├── repository.py
 │       ├── session_dao.py
