@@ -18,14 +18,11 @@ router = Router(
     prefix=base_route + "/users",
 )
 
-UserServiceDep = Annotated[UserService, Depends(get_user_service)]
-SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]
-
 
 @router.post("")
 def create_user(
     user_request: CreateUserRequest,
-    user_service: UserServiceDep,
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> str:
     user = user_service.create_user(user_request)
     return str(user._id)
@@ -33,7 +30,7 @@ def create_user(
 
 @router.get("")
 def get_all_users(
-    user_service: UserServiceDep,
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> list[User]:
     all_users = user_service.get_all_users()
 
@@ -48,7 +45,7 @@ def get_all_users(
 @check_permission("read/users/{user_id}")
 def get_user(
     user_id: str,
-    user_service: UserServiceDep,
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> User:
     user = user_service.get_user(user_id)
     if not user:
@@ -62,8 +59,8 @@ def get_user(
 @check_permission("delete/users/{user_id}")
 def delete_user(
     user_id: str,
-    user_service: UserServiceDep,
-    session_service: SessionServiceDep,
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    session_service: Annotated[SessionService, Depends(get_session_service)],
 ) -> User:
     user = user_service.get_user(user_id)
     if not user:
