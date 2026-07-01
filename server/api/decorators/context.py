@@ -4,6 +4,8 @@ from typing import Any
 from api.decorators.decorator import decorator
 from auth.session.session import Session
 from db import DatabaseSettings, PSerializeEntitySerializer, create_repository
+from db.session_dao import SessionDAO
+from db.user_dao import UserDAO
 from models.request_context import RequestContext
 from models.user.user import User
 from service.session_service import SessionService
@@ -36,8 +38,8 @@ def set_context():
         )
 
         try:
-            session_service = SessionService(session_repository)
-            user_service = UserService(user_repository)
+            session_service = SessionService(SessionDAO(session_repository))
+            user_service = UserService(UserDAO(user_repository))
 
             session_id = request.cookies.get("session_id")
             request_context.session_id = session_id

@@ -1,6 +1,6 @@
 # Server Template
 
-A FastAPI server template with pre-built folder structure for endpoints, exceptions, models, and database interfaces.
+A FastAPI server template with pre-built application structure, backend-neutral persistence, and a CLI scaffolder.
 
 Use this repository as a starting point for small API services that need a clean baseline layout instead of starting from an empty FastAPI project.
 
@@ -8,12 +8,12 @@ Use this repository as a starting point for small API services that need a clean
 
 - FastAPI application structure.
 - Organized endpoint modules.
-- Model and database interface folders.
 - Centralized exception handling pattern.
-- Dependency file for local setup.
 - CLI scaffolder that clones this template into a new app folder.
-- Backend-neutral repository and DAO database contracts with Mongo and Postgres implementations.
-- FastAPI-native dependency providers for request-scoped repositories and services.
+- Entity-rooted DB model convention with `_id`, `_created_date`, and `_updated_date` on DB-backed models.
+- Backend-neutral repository contract with Mongo, Postgres, and SQLite implementations.
+- Entity DAOs that wrap repositories directly and keep shared entity lifecycle rules in one place.
+- FastAPI-native dependency providers for request-scoped DAOs and services.
 
 ## Scaffold a new app
 
@@ -53,44 +53,58 @@ You can also run the CLI as a module from a checkout of this repo:
 python -m server_template new billing-api
 ```
 
-## Database backend abstraction
+## Persistence architecture
 
-The template supports choosing between Mongo/NoSQL and Postgres/SQL without exposing `pymongo`, `psycopg`, SQLAlchemy, collection, cursor, session, or bulk-update types to endpoint/service/DAO code.
+The template separates domain persistence behavior from concrete database backends:
 
-For repository-style code, depend on the neutral repository protocol under the template app package:
-
-```python
-from server.db import MappingSerializer, Repository, create_repository
-from server.db.config import DatabaseSettings
-
-settings = DatabaseSettings.from_env()
-users: Repository[dict] = create_repository(
-    settings=settings,
-    resource_name="users",
-    serializer=MappingSerializer(),
-)
-
-users.create({"id": "user-1", "email": "user@example.com"})
+```text
+Endpoint
+  -> Service
+    -> DAO
+      -> Repository[TEntity]
+        -> MongoRepository | PostgresRepository | SQLiteRepository
 ```
 
-Prefer FastAPI dependency injection at the endpoint boundary. Existing typed aliases can be used directly:
+Every DB-backed domain model should inherit from `Entity()` or `IdEntity`, which gives it `_id`, `_created_date`, and `_updated_date`.
 
 ```python
-from server.db.dependencies import UserRepository
+from dataclasses import dataclass
 
-@router.get("/users")
-def list_users(users: UserRepository):
-    return users.list(limit=100)
+from models.base.entity import Entity
+
+
+@dataclass
+class Project(Entity()):
+    name: str
 ```
 
-For custom models, create a request-scoped repository dependency once and reuse it:
+DAOs are the service-facing persistence layer. The generic `EntityDAO[TEntity]` wraps a backend-neutral `Repository[TEntity]` and owns shared entity lifecycle behavior such as ensuring IDs and updating timestamps before persistence.
+
+```python
+from db.entity_dao import EntityDAO
+from db.repository import Repository
+
+
+class ProjectDAO(EntityDAO[Project]):
+    def __init__(self, repository: Repository[Project]):
+        super().__init__(repository)
+
+    def get_by_name(self, name: str) -> Project | None:
+        return self.find_one({"name": name})
+```
+
+Concrete repository implementations live under `server/db/backends` and own driver-specific connection details. Endpoint, service, and DAO code should not use `pymongo`, `psycopg`, SQLAlchemy, collection, cursor, or transaction/session types directly.
+
+## FastAPI dependency injection
+
+Prefer injecting services into endpoints. Services depend on DAOs, and DAOs depend on repositories.
 
 ```python
 from typing import Annotated
 
 from fastapi import Depends
-from server.db import Repository
-from server.db.dependencies import PSerializeEntitySerializer, repository_dependency
+from db.dependencies import repository_dependency, PSerializeEntitySerializer
+from db.repository import Repository
 
 ProjectRepository = Annotated[
     Repository[Project],
@@ -99,37 +113,18 @@ ProjectRepository = Annotated[
         serializer=PSerializeEntitySerializer(Project),
     )),
 ]
-
-@router.get("/projects")
-def list_projects(projects: ProjectRepository):
-    return projects.list(limit=100)
 ```
 
-For existing DAO-style code, `BaseDAO` depends on a generic `Database` facade instead of a Mongo collection:
+Then wire the DAO and service once in a dependency module:
 
 ```python
-from server.db.base_dao import BaseDAO
-from server.db.config import DatabaseSettings
-
-settings = DatabaseSettings.from_env()
-users = BaseDAO(
-    classType=User,
-    resource_name="users",
-    settings=settings,
-)
+def get_project_dao(projects: ProjectRepository) -> ProjectDAO:
+    return ProjectDAO(projects)
 ```
 
-`Database` maps the same primitive operations to Mongo or Postgres internally:
+The template includes ready-made `UserDAO`, `SessionDAO`, and service dependency providers for the starter user/session routes.
 
-```python
-db.save(record)
-db.save_many(records)
-db.update(DatabaseUpdate(entity_id="entity-id", values={"field": "value"}))
-db.update_many(updates)
-db.find_all()
-db.find_one({"email": "user@example.com"})
-db.close()
-```
+## Database backend selection
 
 Select the backend with environment variables:
 
@@ -147,6 +142,14 @@ APP_DB_URI=postgresql://postgres:postgres@localhost:5432/my_app
 APP_DB_NAME=my_app
 ```
 
+or:
+
+```bash
+APP_DB_BACKEND=sqlite
+APP_DB_URI=sqlite:///my_app.db
+APP_DB_NAME=my_app
+```
+
 The repository interface intentionally only exposes application entities and primitive Python values:
 
 ```python
@@ -158,18 +161,6 @@ repo.update("entity-id", {"field": "value"})
 repo.delete("entity-id")
 repo.close()
 ```
-
-Concrete backend classes live under `server.db.backends` and handle their own connections internally:
-
-- `MongoRepository` connects to Mongo and maps public `id` to Mongo `_id` internally.
-- `PostgresRepository` connects to Postgres and stores records as `id TEXT PRIMARY KEY` plus JSONB payload by default.
-
-The DAO-facing `Database` facade also handles its own connections internally:
-
-- Mongo maps DAO records to a collection and stores the configured id field as Mongo `_id`.
-- Postgres maps DAO records to `id TEXT PRIMARY KEY` plus JSONB payload.
-
-For domain models, implement `EntitySerializer[T]` so repositories can convert between your app objects and backend-neutral records.
 
 ## Setup this template repo locally
 
@@ -197,12 +188,13 @@ If the application entry point differs, replace `main:app` with the correct modu
 ├── server/
 │   └── db/
 │       ├── backends/
-│       ├── base_dao.py
 │       ├── config.py
-│       ├── database.py
 │       ├── dependencies.py
+│       ├── entity_dao.py
 │       ├── factory.py
-│       └── repository.py
+│       ├── repository.py
+│       ├── session_dao.py
+│       └── user_dao.py
 ├── requirements.txt
 ├── pyproject.toml
 └── README.md
@@ -212,11 +204,12 @@ If the application entry point differs, replace `main:app` with the correct modu
 
 1. Clone or copy the repository.
 2. Rename the application/package to match the new service.
-3. Pick `APP_DB_BACKEND=mongo` or `APP_DB_BACKEND=postgres`.
-4. Add domain models and serializers.
-5. Add endpoint modules that depend on `Repository[T]`, `BaseDAO[T]`, or `Database`, not concrete DB drivers.
-6. Prefer FastAPI `Depends(...)` providers for repositories and services.
-7. Add tests before using it as a production service.
+3. Pick `APP_DB_BACKEND=mongo`, `postgres`, or `sqlite`.
+4. Add domain models that inherit from `Entity()`.
+5. Add domain DAOs that inherit from `EntityDAO[TEntity]`.
+6. Add services that depend on DAOs, not concrete DB drivers.
+7. Add endpoint modules that depend on services through FastAPI `Depends(...)` providers.
+8. Add tests before using it as a production service.
 
 ## Status
 
