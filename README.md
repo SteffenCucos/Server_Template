@@ -103,7 +103,8 @@ Prefer injecting services into endpoints. Services depend on DAOs, and DAOs depe
 from typing import Annotated
 
 from fastapi import Depends
-from db.dependencies import repository_dependency, PSerializeEntitySerializer
+from db.dependencies import repository_dependency
+from db.pserialize_entity_serializer import PSerializeEntitySerializer
 from db.repository import Repository
 
 ProjectRepository = Annotated[
@@ -158,7 +159,7 @@ repo.get_by_id("entity-id")
 repo.find_one({"email": "user@example.com"})
 repo.list(limit=100, offset=0)
 repo.update("entity-id", {"field": "value"})
-repo.delete("entity-id")
+repo.delete(entity_id)
 repo.close()
 ```
 
@@ -192,6 +193,7 @@ If the application entry point differs, replace `main:app` with the correct modu
 │       ├── dependencies.py
 │       ├── entity_dao.py
 │       ├── factory.py
+│       ├── pserialize_entity_serializer.py
 │       ├── repository.py
 │       ├── session_dao.py
 │       └── user_dao.py
