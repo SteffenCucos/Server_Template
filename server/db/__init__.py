@@ -4,8 +4,8 @@ Application code should depend on entity DAOs and repository interfaces while
 concrete repository implementations own Mongo/Postgres/SQLite connection details.
 """
 
-from .config import DatabaseBackend, DatabaseSettings
-from .dependencies import (
+from .connection import DatabaseBackend, DatabaseSettings
+from .dependency_wiring import (
     get_database_settings,
     get_session_dao,
     get_session_repository,
@@ -14,9 +14,9 @@ from .dependencies import (
     repository_dependency,
 )
 from .entity_dao import EntityDAO
-from .factory import create_repository
 from .pserialize_entity_serializer import PSerializeEntitySerializer
 from .repository import EntitySerializer, MappingSerializer, Repository
+from .repository_creation import create_repository
 from .session_dao import SessionDAO
 from .user_dao import UserDAO
 
