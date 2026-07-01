@@ -7,6 +7,7 @@ Endpoints can depend on typed repository aliases such as `UserRepository` and
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Mapping
+from dataclasses import fields, is_dataclass
 from typing import Annotated, Any, Generic, TypeVar
 
 from auth.session.session import Session
@@ -33,6 +34,7 @@ class PSerializeEntitySerializer(Generic[EntityT]):
         self.class_type = class_type
         self.serializer = get_application_serializer()
         self.deserializer = get_application_deserializer()
+        self.constructor_fields = _constructor_fields(class_type)
 
     def to_record(self, entity: EntityT) -> Record:
         record = self.serializer.serialize(entity)
@@ -42,11 +44,29 @@ class PSerializeEntitySerializer(Generic[EntityT]):
 
     def from_record(self, record: Mapping[str, Any]) -> EntityT:
         record_dict = dict(record)
-        entity_id = record_dict.pop("_id", None)
-        entity = self.deserializer.deserialize(value=record_dict, classType=self.class_type)
-        if entity_id is not None:
-            setattr(entity, "_id", Id(str(entity_id)))
+        constructor_record = {
+            key: value
+            for key, value in record_dict.items()
+            if key in self.constructor_fields
+        }
+        entity = self.deserializer.deserialize(
+            value=constructor_record,
+            classType=self.class_type,
+        )
+
+        for key, value in record_dict.items():
+            if key == "_id":
+                setattr(entity, key, Id(str(value)))
+            elif key not in self.constructor_fields:
+                setattr(entity, key, value)
+
         return entity
+
+
+def _constructor_fields(class_type: type[Any]) -> set[str]:
+    if not is_dataclass(class_type):
+        return set()
+    return {field.name for field in fields(class_type) if field.init}
 
 
 def get_database_settings() -> DatabaseSettings:
