@@ -11,6 +11,7 @@ from typing import Annotated, Any, Generic, TypeVar
 
 from auth.session.session import Session
 from fastapi import Depends
+from models.base.id import Id
 from models.user.user import User
 
 from .config import DatabaseSettings
@@ -40,9 +41,11 @@ class PSerializeEntitySerializer(Generic[EntityT]):
         return record
 
     def from_record(self, record: Mapping[str, Any]) -> EntityT:
-        entity = self.deserializer.deserialize(value=dict(record), classType=self.class_type)
-        if "_id" in record:
-            setattr(entity, "_id", record["_id"])
+        record_dict = dict(record)
+        entity_id = record_dict.pop("_id", None)
+        entity = self.deserializer.deserialize(value=record_dict, classType=self.class_type)
+        if entity_id is not None:
+            setattr(entity, "_id", Id(str(entity_id)))
         return entity
 
 
