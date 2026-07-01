@@ -159,7 +159,7 @@ repo.get_by_id("entity-id")
 repo.find_one({"email": "user@example.com"})
 repo.list(limit=100, offset=0)
 repo.update("entity-id", {"field": "value"})
-repo.delete(entity_id)
+repo.delete("entity-id")
 repo.close()
 ```
 
