@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from models.base.id import Id
 
+from .repository import EntitySerializer
 from .serializing_middleware import (
     get_application_deserializer,
     get_application_serializer,
@@ -17,7 +18,7 @@ EntityT = TypeVar("EntityT")
 Record = dict[str, Any]
 
 
-class PSerializeEntitySerializer(Generic[EntityT]):
+class PSerializeEntitySerializer(EntitySerializer[EntityT]):
     """Convert entities to/from repository records using pserialize."""
 
     def __init__(self, class_type: type[EntityT]) -> None:
