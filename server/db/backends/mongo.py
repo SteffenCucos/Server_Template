@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Generic
+from typing import Any
 
-from ..repository import EntityIdRequiredError, EntitySerializer, EntityT
+from ..repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
 MEMORY_MONGO_URIS = {"memory://", "mongo://memory", "mongodb://memory", "mongodb://in-memory"}
 _SHARED_MEMORY_CLIENTS: dict[str, object] = {}
 
 
-class MongoRepository(Generic[EntityT]):
+class MongoRepository(Repository[EntityT]):
     """Repository implementation backed by MongoDB.
 
     Public constructor arguments are plain strings and serializers. pymongo
