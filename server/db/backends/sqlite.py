@@ -9,14 +9,10 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Mapping
-from pathlib import Path
 from typing import Any, Generic
-from urllib.parse import urlparse
 
+from ..connection import create_sqlite_connection
 from ..repository import EntityIdRequiredError, EntitySerializer, EntityT
-
-_MEMORY_SQLITE_URIS = {":memory:", "sqlite:///:memory:"}
-_SHARED_MEMORY_CONNECTIONS: dict[str, sqlite3.Connection] = {}
 
 
 class SQLiteRepository(Generic[EntityT]):
@@ -32,7 +28,7 @@ class SQLiteRepository(Generic[EntityT]):
         data_column: str = "data",
         ensure_table: bool = True,
     ) -> None:
-        self._connection, self._owns_connection = _create_sqlite_connection(uri)
+        self._connection, self._owns_connection = create_sqlite_connection(uri)
         self._connection.row_factory = sqlite3.Row
         self._table = table
         self._serializer = serializer
@@ -133,27 +129,3 @@ class SQLiteRepository(Generic[EntityT]):
         record = dict(payload)
         record[self._id_field] = row["id"]
         return self._serializer.from_record(record)
-
-
-def _create_sqlite_connection(uri: str) -> tuple[sqlite3.Connection, bool]:
-    if uri in _MEMORY_SQLITE_URIS:
-        if uri not in _SHARED_MEMORY_CONNECTIONS:
-            _SHARED_MEMORY_CONNECTIONS[uri] = sqlite3.connect(":memory:", check_same_thread=False)
-        return _SHARED_MEMORY_CONNECTIONS[uri], False
-
-    return sqlite3.connect(_sqlite_path_from_uri(uri), check_same_thread=False), True
-
-
-def _sqlite_path_from_uri(uri: str) -> str:
-    parsed = urlparse(uri)
-    if parsed.scheme != "sqlite":
-        return uri
-
-    path = parsed.path
-    if path.startswith("/") and not path.startswith("//"):
-        path = path[1:]
-
-    db_path = Path(path)
-    if db_path.parent != Path(""):
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-    return str(db_path)
