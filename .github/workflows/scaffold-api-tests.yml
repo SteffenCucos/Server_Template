@@ -42,19 +42,25 @@ jobs:
 
       - name: Generate scaffold app with CLI
         run: |
-          rm -rf test-scafold/app
+          rm -rf test-scafold/app test-scafold/artifacts
           server-template new test-scafold-app \
             --target-dir test-scafold/app \
             --repo "file://${GITHUB_WORKSPACE}" \
             --branch "" \
             --force
 
+      - name: Package generated scaffold app
+        if: always()
+        run: |
+          mkdir -p "test-scafold/artifacts/generated-scaffold-app-${{ matrix.backend }}"
+          cp -R test-scafold/app "test-scafold/artifacts/generated-scaffold-app-${{ matrix.backend }}/app"
+
       - name: Upload generated scaffold app
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: generated-scaffold-app-${{ matrix.backend }}
-          path: test-scafold/app
+          path: test-scafold/artifacts/generated-scaffold-app-${{ matrix.backend }}
           if-no-files-found: error
 
       - name: Install scaffold dependencies
