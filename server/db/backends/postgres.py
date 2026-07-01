@@ -10,7 +10,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Generic
 
-from ..connection import create_postgres_connection
 from ..repository import EntityIdRequiredError, EntitySerializer, EntityT
 
 
@@ -31,7 +30,9 @@ class PostgresRepository(Generic[EntityT]):
         data_column: str = "data",
         ensure_table: bool = True,
     ) -> None:
-        self._connection = create_postgres_connection(uri)
+        import psycopg
+
+        self._connection = psycopg.connect(uri)
         self._table = table
         self._serializer = serializer
         self._id_field = id_field
