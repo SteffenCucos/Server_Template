@@ -8,12 +8,12 @@ to first-class relational tables later behind the same Repository protocol.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Generic
+from typing import Any
 
-from ..repository import EntityIdRequiredError, EntitySerializer, EntityT
+from ..repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
 
-class PostgresRepository(Generic[EntityT]):
+class PostgresRepository(Repository[EntityT]):
     """Repository implementation backed by PostgreSQL.
 
     Public constructor arguments are plain strings and serializers. psycopg
