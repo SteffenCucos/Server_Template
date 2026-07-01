@@ -6,7 +6,6 @@ concrete repository implementations own Mongo/Postgres/SQLite connection details
 
 from .config import DatabaseBackend, DatabaseSettings
 from .dependencies import (
-    PSerializeEntitySerializer,
     SessionDAODep,
     SessionRepository,
     UserDAODep,
@@ -20,6 +19,7 @@ from .dependencies import (
 )
 from .entity_dao import EntityDAO
 from .factory import create_repository
+from .pserialize_entity_serializer import PSerializeEntitySerializer
 from .repository import EntitySerializer, MappingSerializer, Repository
 from .session_dao import SessionDAO
 from .user_dao import UserDAO
