@@ -20,14 +20,11 @@ router = Router(
     prefix=base_route + "/sessions",
 )
 
-UserServiceDep = Annotated[UserService, Depends(get_user_service)]
-SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]
-
 
 @router.get("")
 def get_sessions(
-    user_service: UserServiceDep,
-    session_service: SessionServiceDep,
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    session_service: Annotated[SessionService, Depends(get_session_service)],
 ):
     sessions = session_service.get_all()
 
@@ -61,8 +58,8 @@ class LoginBody:
 @router.post("/login")
 def login(
     credentials: LoginBody,
-    user_service: UserServiceDep,
-    session_service: SessionServiceDep,
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    session_service: Annotated[SessionService, Depends(get_session_service)],
 ):
     user = user_service.get_user_by_name(credentials.user_name)
 
@@ -81,7 +78,7 @@ def login(
 @router.get("/logout")
 @authenticated()
 def logout(
-    session_service: SessionServiceDep,
+    session_service: Annotated[SessionService, Depends(get_session_service)],
 ):
     session_id = RequestContext.get_context().session_id
     session_service.end_session(session_id)
