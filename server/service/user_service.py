@@ -34,11 +34,6 @@ class UserService:
             password=user_request.password,
             email=user_request.email,
         )
-        user.permissions = [
-            f"read/users/{user._id}",
-            f"update/users/{user._id}",
-            f"delete/users/{user._id}",
-        ]
         return self.user_dao.create(user)
 
     def get_user(self, user_id: Id | str) -> User | None:
