@@ -1,14 +1,12 @@
-"""FastAPI dependency providers for repository and DAO injection.
-
-Endpoints and services can depend on explicit dependency providers without
-knowing which concrete database backend is active.
-"""
+"""FastAPI dependency providers for repository and DAO injection."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 from typing import Annotated, TypeVar
 
+from auth.rbac import Permission as PermModel
+from auth.rbac import Role, RolePermission, UserRole
 from auth.session.session import Session
 from fastapi import Depends
 from models.user.user import User
@@ -16,6 +14,7 @@ from models.user.user import User
 from .config import DatabaseSettings
 from .factory import create_repository
 from .pserialize_entity_serializer import PSerializeEntitySerializer
+from .rbac_dao import PermDAO, RoleDAO, RolePermDAO, UserRoleDAO
 from .repository import EntitySerializer, Repository
 from .session_dao import SessionDAO
 from .user_dao import UserDAO
@@ -24,7 +23,6 @@ EntityT = TypeVar("EntityT")
 
 
 def get_database_settings() -> DatabaseSettings:
-    """Resolve database settings for the current request."""
     return DatabaseSettings.from_env()
 
 
@@ -34,8 +32,6 @@ def repository_dependency(
     serializer: EntitySerializer[EntityT],
     id_field: str = "_id",
 ) -> Callable[..., Iterator[Repository[EntityT]]]:
-    """Create a FastAPI dependency for a typed repository."""
-
     def get_repository(
         settings: DatabaseSettings = Depends(get_database_settings),
     ) -> Iterator[Repository[EntityT]]:
@@ -63,6 +59,26 @@ get_session_repository = repository_dependency(
     serializer=PSerializeEntitySerializer(Session),
 )
 
+get_perm_repository = repository_dependency(
+    resource_name="perms",
+    serializer=PSerializeEntitySerializer(PermModel),
+)
+
+get_role_repository = repository_dependency(
+    resource_name="roles",
+    serializer=PSerializeEntitySerializer(Role),
+)
+
+get_user_role_repository = repository_dependency(
+    resource_name="user_roles",
+    serializer=PSerializeEntitySerializer(UserRole),
+)
+
+get_role_perm_repository = repository_dependency(
+    resource_name="role_perms",
+    serializer=PSerializeEntitySerializer(RolePermission),
+)
+
 
 def get_user_dao(
     user_repository: Annotated[Repository[User], Depends(get_user_repository)],
@@ -74,3 +90,27 @@ def get_session_dao(
     session_repository: Annotated[Repository[Session], Depends(get_session_repository)],
 ) -> SessionDAO:
     return SessionDAO(session_repository)
+
+
+def get_perm_dao(
+    repository: Annotated[Repository[PermModel], Depends(get_perm_repository)],
+) -> PermDAO:
+    return PermDAO(repository)
+
+
+def get_role_dao(
+    repository: Annotated[Repository[Role], Depends(get_role_repository)],
+) -> RoleDAO:
+    return RoleDAO(repository)
+
+
+def get_user_role_dao(
+    repository: Annotated[Repository[UserRole], Depends(get_user_role_repository)],
+) -> UserRoleDAO:
+    return UserRoleDAO(repository)
+
+
+def get_role_perm_dao(
+    repository: Annotated[Repository[RolePermission], Depends(get_role_perm_repository)],
+) -> RolePermDAO:
+    return RolePermDAO(repository)
