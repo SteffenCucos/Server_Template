@@ -15,6 +15,9 @@ logger = logging.getLogger()
 
 def check_permission(permission: str = None):
     def check_permission_wrapper(request: Request, *positional, **named):
+        if not permission:
+            return
+
         request_context = RequestContext.get_context()
         user = request_context.current_user
 
@@ -23,7 +26,7 @@ def check_permission(permission: str = None):
             raise ForbiddenException("You don't have access to this resource")
 
         filled_in = permission.format(**named)
-        if permission and not _user_has_access(user._id, filled_in):
+        if not _user_has_access(user._id, filled_in):
             logger.info("Access check failed: No matching RBAC grant")
             raise ForbiddenException("You don't have access to this resource")
 
