@@ -22,11 +22,10 @@ class AuthorizationService:
         self.tree_store = tree_store or _STORE
 
     def user_has_access(self, user_id: Id | str, required: str) -> bool:
-        required_parts = self._split(required)
         for role_id in self._role_ids_for_user(user_id):
-            for key in self._keys_for_role(role_id):
-                if self._matches(self._split(key), required_parts):
-                    return True
+            role_tree = self._tree_for_role(role_id)
+            if role_tree.allows(required):
+                return True
         return False
 
     def _role_ids_for_user(self, user_id: Id | str) -> list[str]:
@@ -38,32 +37,25 @@ class AuthorizationService:
             ]
         return self.tree_store.role_ids_by_user_id[key]
 
-    def _keys_for_role(self, role_id: Id | str) -> list[str]:
+    def _tree_for_role(self, role_id: Id | str):
         key = str(role_id)
         if key not in self.tree_store.role_tree_by_role_id:
-            result: list[str] = []
-            for role_perm in self.role_perm_dao.list_for_role(role_id):
-                perm = self.perm_dao.get_by_id(role_perm.permission_id)
-                if perm:
-                    result.append(perm.key)
-            self.tree_store.role_tree_by_role_id[key] = result
+            self.tree_store.role_tree_by_role_id[key] = self._build_tree_for_role(role_id)
         return self.tree_store.role_tree_by_role_id[key]
+
+    def _build_tree_for_role(self, role_id: Id | str):
+        role_tree = _TREE_CLASS()
+        for role_perm in self.role_perm_dao.list_for_role(role_id):
+            perm = self.perm_dao.get_by_id(role_perm.permission_id)
+            if perm:
+                role_tree.add(perm.key)
+        return role_tree
 
     def list_access_keys(self, user_id: Id | str) -> list[str]:
         keys: list[str] = []
         for role_id in self._role_ids_for_user(user_id):
-            keys.extend(self._keys_for_role(role_id))
+            for role_perm in self.role_perm_dao.list_for_role(role_id):
+                perm = self.perm_dao.get_by_id(role_perm.permission_id)
+                if perm:
+                    keys.append(perm.key)
         return keys
-
-    def _matches(self, pattern: list[str], required: list[str]) -> bool:
-        for index, part in enumerate(pattern):
-            if part == "**":
-                return True
-            if index >= len(required):
-                return False
-            if part != "*" and not part.startswith(".") and part != required[index]:
-                return False
-        return len(pattern) == len(required)
-
-    def _split(self, value: str) -> list[str]:
-        return [part for part in value.strip("/").split("/") if part]
