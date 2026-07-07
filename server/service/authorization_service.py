@@ -1,11 +1,7 @@
 from db.rbac_dao import PermDAO, RolePermDAO, UserRoleDAO
 from models.base.id import Id
 
-
-class TreeStore:
-    def __init__(self) -> None:
-        self.role_ids_by_user_id: dict[str, list[str]] = {}
-        self.keys_by_role_id: dict[str, list[str]] = {}
+from .tree_store import TreeStore
 
 
 _STORE = TreeStore()
@@ -43,14 +39,14 @@ class AuthorizationService:
 
     def _keys_for_role(self, role_id: Id | str) -> list[str]:
         key = str(role_id)
-        if key not in self.tree_store.keys_by_role_id:
+        if key not in self.tree_store.role_tree_by_role_id:
             result: list[str] = []
             for role_perm in self.role_perm_dao.list_for_role(role_id):
                 perm = self.perm_dao.get_by_id(role_perm.permission_id)
                 if perm:
                     result.append(perm.key)
-            self.tree_store.keys_by_role_id[key] = result
-        return self.tree_store.keys_by_role_id[key]
+            self.tree_store.role_tree_by_role_id[key] = result
+        return self.tree_store.role_tree_by_role_id[key]
 
     def list_access_keys(self, user_id: Id | str) -> list[str]:
         keys: list[str] = []
