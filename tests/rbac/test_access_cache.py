@@ -3,6 +3,7 @@ from auth.rbac import RolePermission as RP
 from auth.rbac import UserRole as UR
 from models.base.id import Id
 from service.authorization_service import AuthorizationService
+from service.permission_tree import PermissionTree
 from service.tree_store import TreeStore
 
 
@@ -39,9 +40,12 @@ class PDao:
 def test_role_store_no_reload_on_no_match():
     user_id = Id("u1")
     role_id = Id("r1")
+    role_tree = PermissionTree()
+    role_tree.add("read/users/*")
+
     store = TreeStore()
     store.role_ids_by_user_id[str(user_id)] = [str(role_id)]
-    store.role_tree_by_role_id[str(role_id)] = ["read/users/*"]
+    store.role_tree_by_role_id[str(role_id)] = role_tree
 
     udao = UDao([])
     rdao = RDao([])
