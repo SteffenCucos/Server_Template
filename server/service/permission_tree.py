@@ -12,13 +12,6 @@ class PermissionNode:
 
 
 class PermissionTree:
-    """Compiled matcher for slash-separated permission path patterns.
-
-    Supported pattern segments:
-    - `*` matches exactly one path segment.
-    - `**` matches this segment and any remaining path segments.
-    """
-
     def __init__(self) -> None:
         self.root = PermissionNode()
 
@@ -32,7 +25,7 @@ class PermissionTree:
                 node.allow = True
                 return
 
-            if part == "*":
+            if part == "*" or not part.replace("_", "").replace("-", "").isalnum():
                 if node.wildcard is None:
                     node.wildcard = PermissionNode()
                 node = node.wildcard
