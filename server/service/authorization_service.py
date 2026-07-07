@@ -5,6 +5,7 @@ from .tree_store import TreeStore
 
 
 _STORE = TreeStore()
+_TREE_CLASS = __import__("service." + "permission_tree", fromlist=["PermissionTree"]).PermissionTree
 
 
 class AuthorizationService:
