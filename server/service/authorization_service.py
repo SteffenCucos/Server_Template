@@ -1,5 +1,3 @@
-import re as regex
-
 from db.rbac_dao import PermDAO, RolePermDAO, UserRoleDAO
 from models.base.id import Id
 
@@ -17,7 +15,7 @@ class AuthorizationService:
 
     def user_has_access(self, user_id: Id | str, required: str) -> bool:
         for key in self.list_access_keys(user_id):
-            if regex.match(key, required):
+            if key == required:
                 return True
         return False
 
