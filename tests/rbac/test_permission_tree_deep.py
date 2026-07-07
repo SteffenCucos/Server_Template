@@ -10,69 +10,72 @@ def build_tree(patterns: list[str]) -> PermissionTree:
 
 def test_deep_exact_path_does_not_grant_prefixes_or_children():
     tree = build_tree([
-        "tenant/acme/env/prod/service/billing/resource/invoice/action/read",
+        "read/tenant/acme/env/prod/service/billing/resource/invoice",
     ])
 
-    assert tree.allows("tenant/acme/env/prod/service/billing/resource/invoice/action/read")
-    assert not tree.allows("tenant/acme/env/prod/service/billing/resource/invoice/action")
-    assert not tree.allows("tenant/acme/env/prod/service/billing/resource/invoice/action/read/extra")
-    assert not tree.allows("tenant/acme/env/staging/service/billing/resource/invoice/action/read")
+    assert tree.allows("read/tenant/acme/env/prod/service/billing/resource/invoice")
+    assert not tree.allows("read/tenant/acme/env/prod/service/billing/resource")
+    assert not tree.allows("read/tenant/acme/env/prod/service/billing/resource/invoice/items")
+    assert not tree.allows("read/tenant/acme/env/staging/service/billing/resource/invoice")
+    assert not tree.allows("write/tenant/acme/env/prod/service/billing/resource/invoice")
 
 
 def test_overlapping_exact_and_single_segment_wildcards():
     tree = build_tree([
-        "tenant/acme/env/prod/service/billing/resource/invoice/action/read",
-        "tenant/acme/env/prod/service/billing/resource/*/action/list",
-        "tenant/acme/env/*/service/analytics/resource/report/action/read",
+        "read/tenant/acme/env/prod/service/billing/resource/invoice",
+        "list/tenant/acme/env/prod/service/billing/resource/*",
+        "read/tenant/acme/env/*/service/analytics/resource/report",
     ])
 
-    assert tree.allows("tenant/acme/env/prod/service/billing/resource/invoice/action/read")
-    assert tree.allows("tenant/acme/env/prod/service/billing/resource/customer/action/list")
-    assert tree.allows("tenant/acme/env/staging/service/analytics/resource/report/action/read")
+    assert tree.allows("read/tenant/acme/env/prod/service/billing/resource/invoice")
+    assert tree.allows("list/tenant/acme/env/prod/service/billing/resource/customer")
+    assert tree.allows("read/tenant/acme/env/staging/service/analytics/resource/report")
 
-    assert not tree.allows("tenant/acme/env/prod/service/billing/resource/customer/action/read")
-    assert not tree.allows("tenant/acme/env/prod/service/billing/resource/customer/profile/action/list")
-    assert not tree.allows("tenant/acme/env/staging/service/billing/resource/invoice/action/read")
+    assert not tree.allows("read/tenant/acme/env/prod/service/billing/resource/customer")
+    assert not tree.allows("list/tenant/acme/env/prod/service/billing/resource/customer/profile")
+    assert not tree.allows("read/tenant/acme/env/staging/service/billing/resource/invoice")
+    assert not tree.allows("write/tenant/acme/env/prod/service/billing/resource/invoice")
 
 
-def test_deep_wildcard_grants_whole_subtree_but_not_siblings():
+def test_deep_wildcard_grants_whole_object_subtree_for_one_action_only():
     tree = build_tree([
-        "tenant/acme/env/prod/service/admin/**",
-        "tenant/acme/env/prod/service/billing/resource/invoice/action/read",
+        "manage/tenant/acme/env/prod/service/control/**",
+        "read/tenant/acme/env/prod/service/billing/resource/invoice",
     ])
 
-    assert tree.allows("tenant/acme/env/prod/service/admin")
-    assert tree.allows("tenant/acme/env/prod/service/admin/users")
-    assert tree.allows("tenant/acme/env/prod/service/admin/users/123/roles/write")
-    assert tree.allows("tenant/acme/env/prod/service/billing/resource/invoice/action/read")
+    assert tree.allows("manage/tenant/acme/env/prod/service/control")
+    assert tree.allows("manage/tenant/acme/env/prod/service/control/users")
+    assert tree.allows("manage/tenant/acme/env/prod/service/control/users/123/groups")
+    assert tree.allows("read/tenant/acme/env/prod/service/billing/resource/invoice")
 
-    assert not tree.allows("tenant/acme/env/prod/service/billing/resource/invoice/action/write")
-    assert not tree.allows("tenant/acme/env/prod/service/administer/users")
-    assert not tree.allows("tenant/acme/env/staging/service/admin/users")
+    assert not tree.allows("write/tenant/acme/env/prod/service/control/users/123/groups")
+    assert not tree.allows("read/tenant/acme/env/prod/service/billing/resource/invoice/items")
+    assert not tree.allows("manage/tenant/acme/env/prod/service/controller/users")
+    assert not tree.allows("manage/tenant/acme/env/staging/service/control/users")
 
 
 def test_many_sibling_branches_do_not_bleed_into_each_other():
     tree = build_tree([
-        "org/*/project/*/dataset/*/read",
-        "org/*/project/*/dataset/*/export/csv",
-        "org/acme/project/payroll/dataset/salaries/write",
-        "org/acme/project/security/**",
-        "org/umbrella/project/research/dataset/virus/read",
+        "read/org/*/project/*/dataset/*",
+        "export/org/*/project/*/dataset/*/csv",
+        "write/org/acme/project/payroll/dataset/salaries",
+        "manage/org/acme/project/platform/**",
+        "read/org/umbrella/project/research/dataset/cells",
     ])
 
-    assert tree.allows("org/acme/project/payroll/dataset/salaries/read")
-    assert tree.allows("org/acme/project/payroll/dataset/salaries/write")
-    assert tree.allows("org/acme/project/payroll/dataset/salaries/export/csv")
-    assert tree.allows("org/acme/project/security/incidents/2026/read")
-    assert tree.allows("org/umbrella/project/research/dataset/virus/read")
+    assert tree.allows("read/org/acme/project/payroll/dataset/salaries")
+    assert tree.allows("write/org/acme/project/payroll/dataset/salaries")
+    assert tree.allows("export/org/acme/project/payroll/dataset/salaries/csv")
+    assert tree.allows("manage/org/acme/project/platform/incidents/2026")
+    assert tree.allows("read/org/umbrella/project/research/dataset/cells")
 
-    assert not tree.allows("org/acme/project/payroll/dataset/salaries/export/json")
-    assert not tree.allows("org/acme/project/payroll/dataset/salaries/delete")
-    assert not tree.allows("org/umbrella/project/research/dataset/virus/write")
-    assert not tree.allows("org/umbrella/project/security/incidents/2026/read")
+    assert not tree.allows("export/org/acme/project/payroll/dataset/salaries/json")
+    assert not tree.allows("remove/org/acme/project/payroll/dataset/salaries")
+    assert not tree.allows("write/org/umbrella/project/research/dataset/cells")
+    assert not tree.allows("manage/org/umbrella/project/platform/incidents/2026")
 
 
-def test_wildcard_path_depth_is_strict():
+def test_wildcard_object_path_depth_is_strict_after_action():
     tree = build_tree([
         "read/users/*",
         "read/teams/*/members/*",
@@ -85,49 +88,50 @@ def test_wildcard_path_depth_is_strict():
     assert not tree.allows("read/users")
     assert not tree.allows("read/teams/eng/members")
     assert not tree.allows("read/teams/eng/members/456/profile")
+    assert not tree.allows("write/users/123")
 
 
 def test_deep_wildcard_can_coexist_with_more_specific_sibling_rules():
     tree = build_tree([
-        "system/audit/**",
-        "system/config/read",
-        "system/config/secrets/*/read",
+        "read/system/audit/**",
+        "read/system/config",
+        "read/system/config/values/*",
     ])
 
-    assert tree.allows("system/audit")
-    assert tree.allows("system/audit/events/2026/07/06")
-    assert tree.allows("system/config/read")
-    assert tree.allows("system/config/secrets/database/read")
+    assert tree.allows("read/system/audit")
+    assert tree.allows("read/system/audit/events/2026/07/06")
+    assert tree.allows("read/system/config")
+    assert tree.allows("read/system/config/values/database")
 
-    assert not tree.allows("system/config/write")
-    assert not tree.allows("system/config/secrets/database/write")
-    assert not tree.allows("system/config/secrets/database/password/read")
+    assert not tree.allows("write/system/config")
+    assert not tree.allows("write/system/config/values/database")
+    assert not tree.allows("read/system/config/values/database/detail")
 
 
 def test_order_of_inserted_patterns_does_not_change_results():
     patterns = [
-        "a/b/c/d/e/f/g/h/i/j/read",
-        "a/b/*/d/*/f/*/h/*/j/list",
-        "a/b/c/d/e/f/g/**",
-        "x/**",
-        "x/y/z/exact",
+        "read/a/b/c/d/e/f/g/h/i/j",
+        "list/a/b/*/d/*/f/*/h/*/j",
+        "remove/a/b/c/d/e/f/g/**",
+        "manage/x/**",
+        "read/x/y/z/exact",
     ]
 
     forward = build_tree(patterns)
     reverse = build_tree(list(reversed(patterns)))
 
     allowed = [
-        "a/b/c/d/e/f/g/h/i/j/read",
-        "a/b/other/d/other/f/other/h/other/j/list",
-        "a/b/c/d/e/f/g/h/i/j/delete",
-        "x",
-        "x/y/z/anything",
+        "read/a/b/c/d/e/f/g/h/i/j",
+        "list/a/b/other/d/other/f/other/h/other/j",
+        "remove/a/b/c/d/e/f/g/h/i/j",
+        "manage/x",
+        "manage/x/y/z/anything",
     ]
     denied = [
-        "a/b/c/d/e/f",
-        "a/b/other/d/other/f/other/h/other/j/list/extra",
-        "a/b/other/d/other/f/other/h/other/j/read",
-        "y/x/z/anything",
+        "read/a/b/c/d/e/f",
+        "list/a/b/other/d/other/f/other/h/other/j/extra",
+        "read/a/b/other/d/other/f/other/h/other/j",
+        "manage/y/x/z/anything",
     ]
 
     for path in allowed:
