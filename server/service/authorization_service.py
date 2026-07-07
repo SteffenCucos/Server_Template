@@ -60,7 +60,7 @@ class AuthorizationService:
                 return True
             if index >= len(required):
                 return False
-            if part != "*" and part != required[index]:
+            if part != "*" and not part.startswith(".") and part != required[index]:
                 return False
         return len(pattern) == len(required)
 
