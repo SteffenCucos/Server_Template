@@ -23,7 +23,8 @@ def test_entity():
     serialized = serializer.serialize(entity)
     deserialized: TestEntity = deserializer.deserialize(serialized, TestEntity)
     id = deserialized._id
-    raise Exception(type(deserialized._id._id))
+    assert deserialized.a == 10
+    assert deserialized._id == id
 
 
 def test_id_entity():
