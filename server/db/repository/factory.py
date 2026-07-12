@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TypeVar
 
-from .config import DatabaseBackend, DatabaseSettings
-from .repository import EntitySerializer, Repository
+from ..config import DatabaseBackend, DatabaseSettings
+from ..repository import EntitySerializer, Repository
 
 EntityT = TypeVar("EntityT")
 
@@ -24,7 +24,7 @@ def create_repository(
     Repository protocol.
     """
     if settings.backend == DatabaseBackend.MONGO:
-        from .backends.mongo import MongoRepository
+        from .mongo import MongoRepository
 
         return MongoRepository(
             uri=settings.uri,
@@ -35,7 +35,7 @@ def create_repository(
         )
 
     if settings.backend == DatabaseBackend.POSTGRES:
-        from .backends.postgres import PostgresRepository
+        from .postgres import PostgresRepository
 
         return PostgresRepository(
             uri=settings.uri,
@@ -45,7 +45,7 @@ def create_repository(
         )
 
     if settings.backend == DatabaseBackend.SQLITE:
-        from .backends.sqlite import SQLiteRepository
+        from .sqlite import SQLiteRepository
 
         return SQLiteRepository(
             uri=settings.uri,

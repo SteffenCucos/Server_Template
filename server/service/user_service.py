@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 
 from api.exceptions import UnprocessableEntityException
-from db.user_dao import UserDAO
+from db.daos.user_dao import UserDAO
 from models.base.id import Id
 from models.user.user import User
 
@@ -21,12 +21,10 @@ class UserService:
         self.user_dao = user_dao
 
     def create_user(self, user_request: CreateUserRequest) -> User:
-        maybe_exists = self.user_dao.get_by_name(user_request.user_name)
-        if maybe_exists:
+        if maybe_exists := self.user_dao.get_by_name(user_request.user_name):
             raise UnprocessableEntityException("Username is already taken")
 
-        maybe_exists = self.user_dao.get_by_email(user_request.email)
-        if maybe_exists:
+        if maybe_exists := self.user_dao.get_by_email(user_request.email):
             raise UnprocessableEntityException("Email is already in use.")
 
         user = User(

@@ -1,7 +1,7 @@
 import logging
 
 from auth.session.session import Session
-from db.session_dao import SessionDAO
+from db.daos.session_dao import SessionDAO
 from models.base.id import Id
 from models.user.user import User
 

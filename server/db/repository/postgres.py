@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
+from .repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
 
 class PostgresRepository(Repository[EntityT]):

@@ -9,9 +9,9 @@ from db.dependencies import (
     get_user_dao,
     get_user_role_dao,
 )
-from db.rbac_dao import PermDAO, RolePermDAO, UserRoleDAO
-from db.session_dao import SessionDAO
-from db.user_dao import UserDAO
+from db.daos.rbac import PermDAO, RolePermDAO, UserRoleDAO
+from db.daos.session_dao import SessionDAO
+from db.daos.user_dao import UserDAO
 from fastapi import Depends
 
 from .authorization_service import AuthorizationService

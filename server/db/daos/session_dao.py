@@ -3,7 +3,7 @@ from __future__ import annotations
 from auth.session.session import Session
 from models.base.id import Id
 
-from db.entity_dao import EntityDAO
+from db.daos.entity_dao import EntityDAO
 from db.repository import Repository
 
 

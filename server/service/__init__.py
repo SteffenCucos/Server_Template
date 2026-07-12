@@ -1,5 +1,7 @@
 """Service layer package.
 
-Contains application services and lightweight dependency helpers that coordinate
-between API routes, domain models, and persistence modules.
+Services hold application business logic and coordinate between API routes,
+domain models, and DAOs. They should not contain database-specific behavior;
+persistence routing belongs in DAOs, and the database interface belongs in
+repositories.
 """

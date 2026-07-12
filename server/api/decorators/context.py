@@ -4,8 +4,8 @@ from typing import Any
 from api.decorators.decorator import decorator
 from auth.session.session import Session
 from db import DatabaseSettings, PSerializeEntitySerializer, create_repository
-from db.session_dao import SessionDAO
-from db.user_dao import UserDAO
+from db.daos.session_dao import SessionDAO
+from db.daos.user_dao import UserDAO
 from models.request_context import RequestContext
 from models.user.user import User
 from service.session_service import SessionService

@@ -12,12 +12,12 @@ from fastapi import Depends
 from models.user.user import User
 
 from .config import DatabaseSettings
-from .factory import create_repository
+from .repository.factory import create_repository
 from .pserialize_entity_serializer import PSerializeEntitySerializer
-from .rbac_dao import PermDAO, RoleDAO, RolePermDAO, UserRoleDAO
+from .daos.rbac import PermDAO, RoleDAO, RolePermDAO, UserRoleDAO
 from .repository import EntitySerializer, Repository
-from .session_dao import SessionDAO
-from .user_dao import UserDAO
+from .daos.session_dao import SessionDAO
+from .daos.user_dao import UserDAO
 
 EntityT = TypeVar("EntityT")
 

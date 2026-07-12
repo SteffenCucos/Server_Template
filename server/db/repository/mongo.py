@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
+from .repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
 MEMORY_MONGO_URIS = {"memory://", "mongo://memory", "mongodb://memory", "mongodb://in-memory"}
 _SHARED_MEMORY_CLIENTS: dict[str, object] = {}

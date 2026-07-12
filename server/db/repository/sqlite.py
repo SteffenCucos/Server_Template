@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from ..repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
+from .repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
 _MEMORY_SQLITE_URIS = {":memory:", "sqlite:///:memory:"}
 _SHARED_MEMORY_CONNECTIONS: dict[str, sqlite3.Connection] = {}

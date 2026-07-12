@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from models.user.user import User
 
-from db.entity_dao import EntityDAO
+from db.daos.entity_dao import EntityDAO
 from db.repository import Repository
 
 

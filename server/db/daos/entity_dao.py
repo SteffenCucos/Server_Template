@@ -16,9 +16,10 @@ TEntity = TypeVar("TEntity", bound=IdEntity)
 class EntityDAO(Generic[TEntity]):
     """Repository-facing DAO for DB-backed entities.
 
-    EntityDAO keeps the shared entity lifecycle rules in one place while
-    delegating persistence to the backend-neutral Repository contract. Concrete
-    DAOs should inherit from this class when their model extends Entity().
+    DAOs route persistence requests to the backend-neutral Repository contract.
+    They also own database-adjacent concerns that are not generic enough for the
+    Repository interface, such as entity lifecycle fields like _created_date and
+    _updated_date. Business rules should stay in services instead of DAOs.
     """
 
     def __init__(self, repository: Repository[TEntity]):

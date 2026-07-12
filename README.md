@@ -236,3 +236,34 @@ Template / starter project.
 ## License
 
 No license has been selected yet.
+
+## Local virtual environment (venv) setup
+
+If you want to work in an isolated virtual environment, create a `.venv` in the repository root and install dependencies:
+
+PowerShell:
+
+```powershell
+python -m venv .venv
+. .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Command Prompt (cmd.exe):
+
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install -r requirements.txt
+```
+
+If `python` is not available on your PATH, install Python 3.8+ from https://www.python.org/ or use the Windows `py` launcher if present:
+
+```powershell
+py -3 -m venv .venv
+. .venv\Scripts\Activate.ps1
+.venv\Scripts\pip.exe install -r requirements.txt
+```
+
+If you prefer not to activate the environment, you can run the venv Python/pip directly from `.venv\Scripts\`.
+

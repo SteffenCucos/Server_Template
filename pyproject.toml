@@ -22,3 +22,6 @@ server-scaffold = "server_template.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["server_template*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["server"]

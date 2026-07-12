@@ -1,7 +1,8 @@
 """Backend-neutral repository contracts.
 
-Repository interfaces should expose only application concepts and primitive Python
-values. Concrete backend implementations own all driver-specific concerns.
+The Repository is the application interface to the underlying database. It
+exposes only application concepts and primitive Python values, while concrete
+backend implementations own all driver-specific concerns.
 """
 
 from __future__ import annotations
@@ -49,7 +50,7 @@ class Repository(ABC, Generic[EntityT]):
     This abstraction intentionally avoids pymongo, psycopg, SQLAlchemy, cursor,
     collection, query-builder, or transaction/session types. Backend-specific
     implementations can use those internally, but endpoint/service code should
-    only depend on this base interface.
+    only depend on this base interface through DAOs.
     """
 
     @abstractmethod

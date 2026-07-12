@@ -5,7 +5,7 @@ from api.exceptions import ForbiddenException
 from auth.rbac import Permission as PermModel
 from auth.rbac import RolePermission, UserRole
 from db import DatabaseSettings, PSerializeEntitySerializer, create_repository
-from db.rbac_dao import PermDAO, RolePermDAO, UserRoleDAO
+from db.daos.rbac import PermDAO, RolePermDAO, UserRoleDAO
 from models.request_context import RequestContext
 from service.authorization_service import AuthorizationService
 from starlette.requests import Request

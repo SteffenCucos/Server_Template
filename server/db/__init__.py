@@ -13,10 +13,10 @@ from .dependencies import (
     get_user_role_dao,
     repository_dependency,
 )
-from .entity_dao import EntityDAO
-from .factory import create_repository
+from .daos.entity_dao import EntityDAO
+from .repository.factory import create_repository
 from .pserialize_entity_serializer import PSerializeEntitySerializer
-from .rbac_dao import PermDAO, RoleDAO, RolePermDAO, UserRoleDAO
+from .daos.rbac import PermDAO, RoleDAO, RolePermDAO, UserRoleDAO
 from .repository import EntitySerializer, MappingSerializer, Repository
-from .session_dao import SessionDAO
-from .user_dao import UserDAO
+from .daos.session_dao import SessionDAO
+from .daos.user_dao import UserDAO

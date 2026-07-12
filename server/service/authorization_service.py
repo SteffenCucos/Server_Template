@@ -1,4 +1,4 @@
-from db.rbac_dao import PermDAO, RolePermDAO, UserRoleDAO
+from db.daos.rbac import PermDAO, RolePermDAO, UserRoleDAO
 from models.base.id import Id
 
 from .tree_store import TreeStore
