@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from api.decorators.decorator import decorator
 from auth.session.session import Session
@@ -8,9 +8,11 @@ from db.daos.session_dao import SessionDAO
 from db.daos.user_dao import UserDAO
 from models.request_context import RequestContext
 from models.user.user import User
+from server.service.dependencies import get_user_service
 from service.session_service import SessionService
 from service.user_service import UserService
 from starlette.requests import Request
+from fastapi import Depends
 
 logger = logging.getLogger()
 
@@ -18,7 +20,7 @@ logger = logging.getLogger()
 def set_context():
     """Create a request context containing the caller's session and user."""
 
-    def set_context_wrapper(request: Request, *positional, **named):
+    def set_context_wrapper(request: Request, user_service: Annotated[UserService, Depends(get_user_service)], *positional, **named):
         logger.info("Setting request context")
         request_context = RequestContext.set_context()
         request_context.filled = True
@@ -30,16 +32,16 @@ def set_context():
             serializer=PSerializeEntitySerializer(Session),
             id_field="_id",
         )
-        user_repository = create_repository(
-            settings=settings,
-            resource_name="users",
-            serializer=PSerializeEntitySerializer(User),
-            id_field="_id",
-        )
+        # user_repository = create_repository(
+        #     settings=settings,
+        #     resource_name="users",
+        #     serializer=PSerializeEntitySerializer(User),
+        #     id_field="_id",
+        # )
 
         try:
             session_service = SessionService(SessionDAO(session_repository))
-            user_service = UserService(UserDAO(user_repository))
+            # user_service = UserService(UserDAO(user_repository))
 
             session_id = request.cookies.get("session_id")
             request_context.session_id = session_id

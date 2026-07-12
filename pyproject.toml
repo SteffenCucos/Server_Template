@@ -10,11 +10,21 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
+api = ["fastapi", "uvicorn", "requests", "pserialization"]
 mongo = ["pymongo<4.11", "pymongo_inmemory"]
 postgres = ["psycopg[binary]"]
 sqlite = []
 db = ["pymongo<4.11", "pymongo_inmemory", "psycopg[binary]"]
-test = ["pytest", "httpx", "pymongo<4.11", "pymongo_inmemory"]
+test = [
+    "fastapi",
+    "httpx",
+    "pymongo<4.11",
+    "pymongo_inmemory",
+    "pserialization",
+    "pytest",
+    "requests",
+    "uvicorn",
+]
 
 [project.scripts]
 server-template = "server_template.cli:main"

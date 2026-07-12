@@ -5,7 +5,9 @@ from typing import Any
 
 from fastapi import Request
 
+
 logger = logging.getLogger()
+
 
 def test_print(num: int):
     def test_print_pre(request: Request, *positional, **named):
@@ -15,6 +17,7 @@ def test_print(num: int):
         print("post:", num)
 
     return decorator(pre=test_print_pre, post=test_print_post)
+
 
 def decorator(pre=None, transform=None, post=None):
     def decorator_wrapper(func): # Take the function we're decorating
@@ -52,6 +55,7 @@ def decorator(pre=None, transform=None, post=None):
 
     return decorator_wrapper
 
+
 def fix_signature(wrapper, func):
     params = [
         # Skip *args and **kwargs from wrapper parameters:
@@ -71,17 +75,18 @@ def fix_signature(wrapper, func):
             deduped_params.append(param)
             seen.add(param)
     
-
     wrapper.__signature__ = inspect.Signature(
         parameters=deduped_params,
         return_annotation=inspect.signature(func).return_annotation,
     )
+
 
 def apply_func(func, request: Request, *positional, **named):
     if takes_request(func):
         return func(request, *positional, **named)
     else:
         return func(*positional, **named)
+    
 
 def takes_request(func) -> bool:
     return inspect.signature(func).parameters.__contains__("request")
