@@ -20,7 +20,8 @@ logger = logging.getLogger()
 def set_context():
     """Create a request context containing the caller's session and user."""
 
-    def set_context_wrapper(request: Request, user_service: Annotated[UserService, Depends(get_user_service)], *positional, **named):
+    def set_context_wrapper(request: Request, 
+                            user_service: Annotated[UserService, Depends(get_user_service)], *positional, **named):
         logger.info("Setting request context")
         request_context = RequestContext.set_context()
         request_context.filled = True
@@ -53,7 +54,8 @@ def set_context():
                     request_context.current_user = user
         finally:
             session_repository.close()
-            user_repository.close()
+            # user_repository.close()
+            pass
 
         if request_context.session:
             logger.info(request_context.session)
