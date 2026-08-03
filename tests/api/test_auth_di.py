@@ -80,7 +80,13 @@ def test_compatibility_annotations_are_metadata_only():
 def test_router_uses_authz_route_and_keeps_public_routes_public():
     app, client, _ = _build_client(lambda endpoint: endpoint, authenticated=False)
 
-    assert isinstance(app.routes[-1], AuthzRoute)
+    registered_router = getattr(app.routes[-1], "original_router", None)
+    registered_route = (
+        registered_router.routes[0]
+        if registered_router is not None
+        else app.routes[-1]
+    )
+    assert isinstance(registered_route, AuthzRoute)
     assert client.get("/items/42").status_code == 200
 
 
