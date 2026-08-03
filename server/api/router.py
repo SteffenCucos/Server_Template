@@ -61,7 +61,12 @@ class Router(APIRouter):
 
     @staticmethod
     def get_serialize_wrapper(func):
-        @wraps(func)
+        # Keep the endpoint's name, docs, and custom auth metadata, but retain
+        # this wrapper's Request annotation for FastAPI dependency analysis.
+        @wraps(
+            func,
+            assigned=("__module__", "__name__", "__qualname__", "__doc__"),
+        )
         def json_serialize(request: Request, *positional, **named):
             result = apply_func(func, request, *positional, **named)
 
