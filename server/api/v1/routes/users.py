@@ -1,8 +1,7 @@
 import logging
 from typing import Annotated
 
-from api.decorators.authenticated import authenticated
-from api.decorators.check_permissions import check_permission
+from api.auth import requires_permission
 from api.exceptions import NotFoundException
 from api.router import Router
 from api.v1 import base_route
@@ -41,8 +40,7 @@ def get_all_users(
 
 
 @router.get("/{user_id}")
-@authenticated()
-@check_permission("read/users/{user_id}")
+@requires_permission("read/users/{user_id}")
 def get_user(
     user_id: str,
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -55,8 +53,7 @@ def get_user(
 
 
 @router.delete("/{user_id}")
-@authenticated()
-@check_permission("delete/users/{user_id}")
+@requires_permission("delete/users/{user_id}")
 def delete_user(
     user_id: str,
     user_service: Annotated[UserService, Depends(get_user_service)],
