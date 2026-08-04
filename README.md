@@ -14,6 +14,7 @@ Use this repository as a starting point for small API services that need a clean
 - Backend-neutral repository contract with Mongo, Postgres, and SQLite implementations.
 - Entity DAOs that wrap repositories directly and keep shared entity lifecycle rules in one place.
 - FastAPI-native dependency providers for request-scoped DAOs and services.
+- Route authentication and permission annotations enforced through FastAPI dependency injection.
 
 ## Scaffold a new app
 
@@ -141,6 +142,36 @@ def get_project(
 
 The template includes ready-made `UserDAO`, `SessionDAO`, and service dependency providers for the starter user/session routes.
 
+## Route authentication and permissions
+
+Use the existing route annotations. They attach metadata only; the custom router converts that metadata into FastAPI dependencies during route registration.
+
+Authentication-only route:
+
+```python
+from api.decorators.authenticated import authenticated
+
+
+@router.get("/me")
+@authenticated()
+def get_me():
+    ...
+```
+
+Permission-protected route:
+
+```python
+from api.decorators.check_permissions import check_permission
+
+
+@router.get("/{project_id}")
+@check_permission("read/projects/{project_id}")
+def get_project(project_id: str):
+    ...
+```
+
+`check_permission(...)` implies authentication. Permission templates can reference route path parameters, which are resolved before `AuthorizationService` is called.
+
 ## Database backend selection
 
 Select the backend with environment variables:
@@ -227,7 +258,8 @@ If the application entry point differs, replace `main:app` with the correct modu
 5. Add domain DAOs that inherit from `EntityDAO[TEntity]`.
 6. Add services that depend on DAOs, not concrete DB drivers.
 7. Add endpoint modules that depend on services through FastAPI `Depends(...)` providers.
-8. Add tests before using it as a production service.
+8. Add `@authenticated()` or `@check_permission(...)` where route access must be restricted.
+9. Add tests before using it as a production service.
 
 ## Status
 
@@ -266,4 +298,3 @@ py -3 -m venv .venv
 ```
 
 If you prefer not to activate the environment, you can run the venv Python/pip directly from `.venv\Scripts\`.
-
