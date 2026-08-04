@@ -67,7 +67,7 @@ def require_current_user(
     return request_context.current_user
 
 
-class RequirePermissions:
+class RequirePermission:
     """Callable dependency bound to one route's permission metadata."""
 
     def __init__(self, requirement: PermissionRequirement):
@@ -82,24 +82,19 @@ class RequirePermissions:
             Depends(get_authz_service),
         ],
     ) -> None:
-        resolved_permissions = tuple(
-            self._resolve_permission(template, request)
-            for template in self.requirement.permissions
+        permission = self._resolve_permission(
+            self.requirement.permission,
+            request,
         )
-        checks = tuple(
-            authorization_service.user_has_access(user._id, permission)
-            for permission in resolved_permissions
-        )
+        if authorization_service.user_has_access(user._id, permission):
+            return
 
-        allowed = any(checks) if self.requirement.mode == "any" else all(checks)
-        if not allowed:
-            logger.info(
-                "Authorization failed for user %s: %s %s",
-                user._id,
-                self.requirement.mode,
-                resolved_permissions,
-            )
-            raise ForbiddenException("You don't have access to this resource")
+        logger.info(
+            "Authorization failed for user %s: %s",
+            user._id,
+            permission,
+        )
+        raise ForbiddenException("You don't have access to this resource")
 
     @staticmethod
     def _resolve_permission(template: str, request: Request) -> str:
