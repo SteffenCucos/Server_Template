@@ -2,8 +2,8 @@ import logging
 from dataclasses import dataclass
 from typing import Annotated
 
-from api.auth import requires_auth
 from api.auth.dependencies import get_request_context
+from api.decorators.authenticated import authenticated
 from api.exceptions import UnauthorizedException
 from api.router import Router
 from api.v1 import base_route
@@ -77,7 +77,7 @@ def login(
 
 
 @router.get("/logout")
-@requires_auth
+@authenticated()
 def logout(
     request_context: Annotated[RequestContext, Depends(get_request_context)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
