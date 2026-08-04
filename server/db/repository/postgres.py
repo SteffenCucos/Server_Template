@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from psycopg import sql
+
 from .repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
 
@@ -42,7 +44,6 @@ class PostgresRepository(Repository[EntityT]):
             self._ensure_table()
 
     def create(self, entity: EntityT) -> EntityT:
-        from psycopg import sql
         from psycopg.types.json import Jsonb
 
         record = dict(self._serializer.to_record(entity))
@@ -85,8 +86,7 @@ class PostgresRepository(Repository[EntityT]):
                 return entity
         return None
 
-    def list(self, *, limit: int = 100, offset: int = 0) -> list[EntityT]:
-        from psycopg import sql
+    def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
 
         query = sql.SQL(
             "SELECT id, {data_column} "
@@ -98,12 +98,11 @@ class PostgresRepository(Repository[EntityT]):
             data_column=sql.Identifier(self._data_column),
         )
         with self._connection.cursor() as cursor:
-            cursor.execute(query, (limit, offset))
+            cursor.execute(query, (limit if limit > 0 else "ALL", offset))
             rows = cursor.fetchall()
         return [self._row_to_entity(row) for row in rows]
 
     def update(self, entity_id: str, changes: Mapping[str, Any]) -> EntityT | None:
-        from psycopg import sql
         from psycopg.types.json import Jsonb
 
         existing = self._fetch_row(entity_id)
@@ -130,7 +129,6 @@ class PostgresRepository(Repository[EntityT]):
         return self._row_to_entity(row)
 
     def delete(self, entity_id: str) -> bool:
-        from psycopg import sql
 
         query = sql.SQL("DELETE FROM {table} WHERE id = %s").format(
             table=sql.Identifier(self._table),
@@ -145,7 +143,6 @@ class PostgresRepository(Repository[EntityT]):
         self._connection.close()
 
     def _ensure_table(self) -> None:
-        from psycopg import sql
 
         query = sql.SQL(
             "CREATE TABLE IF NOT EXISTS {table} ("
@@ -161,7 +158,6 @@ class PostgresRepository(Repository[EntityT]):
         self._connection.commit()
 
     def _fetch_row(self, entity_id: str) -> tuple[str, dict[str, Any]] | None:
-        from psycopg import sql
 
         query = sql.SQL("SELECT id, {data_column} FROM {table} WHERE id = %s").format(
             table=sql.Identifier(self._table),

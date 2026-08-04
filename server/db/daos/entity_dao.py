@@ -45,7 +45,7 @@ class EntityDAO(Generic[TEntity]):
     def find_one(self, condition: Mapping[str, Any]) -> TEntity | None:
         return self.repository.find_one(condition)
 
-    def list(self, *, limit: int = 10_000, offset: int = 0) -> list[TEntity]:
+    def list(self, *, limit: int = -1, offset: int = 0) -> list[TEntity]:
         return self.repository.list(limit=limit, offset=offset)
 
     def find_all(self) -> list[TEntity]:

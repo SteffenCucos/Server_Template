@@ -69,7 +69,7 @@ class Repository(ABC, Generic[EntityT]):
         raise NotImplementedError
 
     @abstractmethod
-    def list(self, *, limit: int = 100, offset: int = 0) -> list[EntityT]:
+    def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         """Return entities in deterministic backend order."""
         raise NotImplementedError
 

@@ -79,10 +79,10 @@ class SQLiteRepository(Repository[EntityT]):
                 return entity
         return None
 
-    def list(self, *, limit: int = 100, offset: int = 0) -> list[EntityT]:
+    def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         rows = self._connection.execute(
             f'SELECT id, "{self._data_column}" FROM "{self._table}" ORDER BY id ASC LIMIT ? OFFSET ?',
-            (limit, offset),
+            (limit if limit > 0 else -1, offset),
         ).fetchall()
         return [self._row_to_entity(row) for row in rows]
 

@@ -49,8 +49,10 @@ class MongoRepository(Repository[EntityT]):
             return None
         return self._from_backend_record(record)
 
-    def list(self, *, limit: int = 100, offset: int = 0) -> list[EntityT]:
-        cursor = self._collection.find({}).sort("_id", 1).skip(offset).limit(limit)
+    def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
+        cursor = self._collection.find({}).sort("_id", 1).skip(offset)
+        if limit > 0:
+            cursor = cursor.limit(limit)
         return [self._from_backend_record(record) for record in cursor]
 
     def update(self, entity_id: str, changes: Mapping[str, Any]) -> EntityT | None:
