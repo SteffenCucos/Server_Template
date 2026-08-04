@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import Depends
 from fastapi.routing import APIRoute
 
-from .dependencies import RequirePermissions, require_current_user
+from .dependencies import RequirePermission, require_current_user
 from .route_permissions import get_auth_required, get_permission_requirement
 
 
@@ -19,7 +19,7 @@ class AuthzRoute(APIRoute):
 
         permission_requirement = get_permission_requirement(endpoint)
         if permission_requirement and not self._has_permission_dependency(dependencies):
-            dependencies.append(Depends(RequirePermissions(permission_requirement)))
+            dependencies.append(Depends(RequirePermission(permission_requirement)))
         elif get_auth_required(endpoint) and not self._has_auth_dependency(dependencies):
             dependencies.append(Depends(require_current_user))
 
@@ -41,7 +41,7 @@ class AuthzRoute(APIRoute):
     @staticmethod
     def _has_permission_dependency(dependencies: list[Any]) -> bool:
         return any(
-            isinstance(getattr(dependency, "dependency", None), RequirePermissions)
+            isinstance(getattr(dependency, "dependency", None), RequirePermission)
             for dependency in dependencies
         )
 
@@ -49,6 +49,6 @@ class AuthzRoute(APIRoute):
     def _has_auth_dependency(dependencies: list[Any]) -> bool:
         return any(
             getattr(dependency, "dependency", None) is require_current_user
-            or isinstance(getattr(dependency, "dependency", None), RequirePermissions)
+            or isinstance(getattr(dependency, "dependency", None), RequirePermission)
             for dependency in dependencies
         )
