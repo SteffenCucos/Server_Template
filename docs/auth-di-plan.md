@@ -1,19 +1,20 @@
 # Auth DI Plan
 
-Plan for moving route authorization checks into the dependency-injection lifecycle while keeping route-level decorators as metadata.
+Plan for moving route authorization checks into the dependency-injection lifecycle while keeping the existing route-level annotations.
 
 ## Goal
 
-Keep route code declarative:
+Keep route code declarative and preserve the current API:
 
 ```python
 @router.get("/{user_id}")
-@requires_permission("read/users/{user_id}")
+@authenticated()
+@check_permission("read/users/{user_id}")
 def get_user(...):
     ...
 ```
 
-But move execution out of the decorator. The decorator should declare the requirement. FastAPI should enforce it using injected services.
+The decorators should declare requirements only. FastAPI should enforce them using injected services.
 
 ## Current problem
 
@@ -51,25 +52,20 @@ server/api/auth/dependencies.py
 server/api/auth/route.py
 ```
 
-Optional compatibility file:
+The existing public annotation files remain:
 
 ```text
+server/api/decorators/authenticated.py
 server/api/decorators/check_permissions.py
 ```
 
-The compatibility file can re-export the new decorator or issue a deprecation path.
-
-## Step 1: Add metadata decorators
-
-Create `route_permissions.py`.
+## Step 1: Make existing decorators metadata-only
 
 Responsibilities:
 
 ```text
-requires_auth
-requires_permission
-requires_any_permission
-requires_all_permissions
+authenticated
+check_permission
 get_auth_required
 get_permission_requirement
 ```
@@ -90,8 +86,7 @@ Suggested metadata shape:
 
 ```text
 PermissionRequirement
-  permissions: tuple[str, ...]
-  mode: any | all
+  permission: str
 ```
 
 ## Step 2: Add enforcement dependencies
@@ -122,8 +117,8 @@ Behavior:
 
 ```text
 no metadata          -> public route
-requires_auth        -> attach current-user dependency
-requires_permission  -> attach permission-enforcement dependency
+authenticated        -> attach current-user dependency
+check_permission     -> attach permission-enforcement dependency
 ```
 
 The point is that route functions stay clean while enforcement is still automatic.
@@ -135,46 +130,36 @@ Update the project router abstraction so it uses the auth-aware route class by d
 Target:
 
 ```text
-all generated routers automatically understand permission metadata
+all generated routers automatically understand auth metadata
 no route has to manually add Depends(...) for authorization
 public routes remain public unless metadata exists
 ```
 
-## Step 5: Replace old decorator usage
+## Step 5: Keep existing route syntax
 
-New preferred usage:
+Permission-protected route:
 
 ```python
 @router.get("/{user_id}")
-@requires_permission("read/users/{user_id}")
+@check_permission("read/users/{user_id}")
 def get_user(...):
     ...
 ```
 
-For multiple acceptable permissions:
-
-```python
-@router.get("/{user_id}")
-@requires_any_permission(
-    "read/users/{user_id}",
-    "manage/users/**",
-)
-def get_user(...):
-    ...
-```
-
-For routes that only require login:
+Authentication-only route:
 
 ```python
 @router.get("/me")
-@requires_auth
+@authenticated()
 def get_me(...):
     ...
 ```
 
+`check_permission(...)` implies authentication, so both decorators are not required on permission-protected routes.
+
 ## Step 6: Remove manual auth persistence wiring
 
-After the new path works, delete or deprecate the old path where `check_permission` creates repositories and DAOs manually.
+After the new path works, delete the old path where `check_permission` creates repositories and DAOs manually.
 
 The replacement should use:
 
@@ -190,23 +175,20 @@ DAO/repository providers
 Unit tests for metadata decorators:
 
 ```text
-requires_auth marks endpoint as auth-required
-requires_permission stores permission templates
-requires_any_permission stores mode=any
-requires_all_permission stores mode=all
+authenticated marks endpoint as auth-required
+check_permission stores its permission template
+check_permission also marks authentication as required
 ```
 
 Route tests:
 
 ```text
 public route has no auth enforcement
-requires_auth route rejects missing current user
-requires_permission route rejects missing current user
-requires_permission route denies missing grant
-requires_permission route allows matching grant
+authenticated route rejects missing current user
+check_permission route rejects missing current user
+check_permission route denies missing grant
+check_permission route allows matching grant
 path params fill permission templates correctly
-any mode passes when one grant matches
-all mode requires every grant to match
 ```
 
 Regression tests:
@@ -220,17 +202,18 @@ permission decorator does not instantiate AuthorizationService
 ## Migration order
 
 ```text
-PR 1: metadata decorators and tests
+PR 1: metadata behavior and tests for existing decorators
 PR 2: enforcement dependency and tests
 PR 3: custom route class and router wiring
-PR 4: migrate existing routes to requires_permission/requires_auth
-PR 5: remove manual repository construction from old decorator path
+PR 4: migrate request-context creation into DI
+PR 5: remove manual repository construction from decorators
 PR 6: README examples and generated scaffold docs
 ```
 
 ## Acceptance criteria
 
 ```text
+existing authenticated and check_permission names remain the public API
 route permissions remain visible beside the route function
 actual checks run through FastAPI dependency lifecycle
 AuthorizationService is injected, not manually created by the decorator
@@ -241,4 +224,4 @@ auth-only and permission routes are tested separately
 
 ## Non-goals
 
-This change does not implement the full RBAC admin API, ownership policies, password hashing, or session expiry. Those should remain separate workstreams.
+This change does not add alternative annotation names, multiple-permission modes, the full RBAC admin API, ownership policies, password hashing, or session expiry. Those should remain separate workstreams.

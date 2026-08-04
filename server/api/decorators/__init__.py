@@ -1,5 +1,6 @@
-"""API decorator utilities.
+"""Route annotations used by the custom FastAPI router.
 
-Provides request/response wrapper helpers used by the custom router to add
-cross-cutting behavior such as request context setup around endpoint handlers.
+`authenticated()` and `check_permission(...)` remain the public auth annotation
+surface. Their decorators only attach metadata; request-time enforcement runs
+through FastAPI dependency injection.
 """

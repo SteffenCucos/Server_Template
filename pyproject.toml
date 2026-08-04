@@ -8,6 +8,12 @@ version = "0.1.0"
 description = "FastAPI server template with a CLI scaffolder."
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "requests",
+    "pserialization",
+]
 
 [project.optional-dependencies]
 mongo = ["pymongo<4.11", "pymongo_inmemory"]

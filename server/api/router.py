@@ -1,12 +1,12 @@
 import logging
+from functools import wraps
 
+from api.auth.route import AuthzRoute
+from api.decorators.decorator import apply_func, fix_signature
 from db.serializing_middleware import get_application_serializer
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.requests import Request
-
-from api.decorators.context import set_context
-from api.decorators.decorator import apply_func, fix_signature
 
 serializer = get_application_serializer()
 
@@ -19,14 +19,18 @@ class Router(APIRouter):
     pitfalls of FastAPIs standard serialization scheme. The specific use
     cases for us is that FastAPI doesn't support the case where a dataclass
     extends a non dataclass, and it doesn't support serializing enums.
+
+    AuthzRoute is installed by default so route-level auth annotations are
+    converted into FastAPI dependencies during route registration.
     '''
 
     def __init__(self, *positional, **named):
-        logger.info(f"Initialized router: {named['prefix']}")
+        named.setdefault("route_class", AuthzRoute)
+        logger.info(f"Initialized router: {named.get('prefix', '')}")
         super().__init__(*positional, **named)
 
     def get(self, endpoint: str):
-        def get_decorator(func):    
+        def get_decorator(func):
             return super(Router, self).get(endpoint)(Router.get_serialize_wrapper(func))
 
         return get_decorator
@@ -57,9 +61,12 @@ class Router(APIRouter):
 
     @staticmethod
     def get_serialize_wrapper(func):
-        @set_context() # Hack to have all routes set context
-        # We need to take a request param here to match what other decorators
-        # will provide
+        # Keep the endpoint's name, docs, and custom auth metadata, but retain
+        # this wrapper's Request annotation for FastAPI dependency analysis.
+        @wraps(
+            func,
+            assigned=("__module__", "__name__", "__qualname__", "__doc__"),
+        )
         def json_serialize(request: Request, *positional, **named):
             result = apply_func(func, request, *positional, **named)
 
@@ -71,5 +78,3 @@ class Router(APIRouter):
         fix_signature(json_serialize, func)
 
         return json_serialize
-
-   

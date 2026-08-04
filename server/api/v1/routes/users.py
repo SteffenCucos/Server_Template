@@ -1,7 +1,6 @@
 import logging
 from typing import Annotated
 
-from api.decorators.authenticated import authenticated
 from api.decorators.check_permissions import check_permission
 from api.exceptions import NotFoundException
 from api.router import Router
@@ -41,7 +40,6 @@ def get_all_users(
 
 
 @router.get("/{user_id}")
-@authenticated()
 @check_permission("read/users/{user_id}")
 def get_user(
     user_id: str,
@@ -55,7 +53,6 @@ def get_user(
 
 
 @router.delete("/{user_id}")
-@authenticated()
 @check_permission("delete/users/{user_id}")
 def delete_user(
     user_id: str,
