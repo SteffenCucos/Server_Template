@@ -1,6 +1,6 @@
+from auth.authorization_service import AuthorizationService
 from auth.rbac import Permission, RolePermission, UserRole
 from models.base.id import Id
-from service.authorization_service import AuthorizationService
 
 
 class FakeUserRoleDAO:

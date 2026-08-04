@@ -5,11 +5,12 @@ from api.decorators.check_permissions import check_permission
 from api.exceptions import NotFoundException
 from api.router import Router
 from api.v1 import base_route
+from auth.dependencies import get_session_service
+from auth.session.session_service import SessionService
 from fastapi import Depends
-from models.user.user import User
-from service.dependencies import get_session_service, get_user_service
-from service.session_service import SessionService
-from service.user_service import CreateUserRequest, UserService
+from users.dependencies import get_user_service
+from users.user import User
+from users.user_service import CreateUserRequest, UserService
 
 logger = logging.getLogger()
 

@@ -7,13 +7,14 @@ from api.decorators.authenticated import authenticated
 from api.exceptions import UnauthorizedException
 from api.router import Router
 from api.v1 import base_route
+from auth.dependencies import get_session_service
 from auth.session.session import Session
+from auth.session.session_service import SessionService
 from fastapi import Depends
 from fastapi.responses import HTMLResponse
 from models.request_context import RequestContext
-from service.dependencies import get_session_service, get_user_service
-from service.session_service import SessionService
-from service.user_service import UserService
+from users.dependencies import get_user_service
+from users.user_service import UserService
 
 logger = logging.getLogger(__name__)
 

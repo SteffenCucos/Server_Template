@@ -31,3 +31,5 @@ include = ["server_template*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["server"]
+testpaths = ["tests"]
+norecursedirs = ["test-scafold", "test-scafold/app"]

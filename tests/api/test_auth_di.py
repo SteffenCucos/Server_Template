@@ -6,10 +6,10 @@ from api.auth.route_permissions import get_auth_required, get_permission_require
 from api.decorators.authenticated import authenticated
 from api.decorators.check_permissions import check_permission
 from api.router import Router
+from auth.dependencies import get_authz_service
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.testclient import TestClient
-from service.dependencies import get_authz_service
 
 
 class StubAuthorizationService:

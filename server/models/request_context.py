@@ -4,10 +4,9 @@ import threading
 from dataclasses import dataclass
 
 from auth.session.session import Session
-from service.threading_utils import get_current_pid
-
 from models.base.id import Id
-from models.user.user import User
+from service.threading_utils import get_current_pid
+from users.user import User
 
 context_map: dict[str, RequestContext] = {}
 

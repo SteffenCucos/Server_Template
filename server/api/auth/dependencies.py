@@ -5,13 +5,14 @@ from collections.abc import Iterator
 from typing import Annotated
 
 from api.exceptions import ForbiddenException, UnauthorizedException
+from auth.authorization_service import AuthorizationService
+from auth.dependencies import get_authz_service, get_session_service
+from auth.session.session_service import SessionService
 from fastapi import Depends, Request
 from models.request_context import RequestContext
-from models.user.user import User
-from service.authorization_service import AuthorizationService
-from service.dependencies import get_authz_service, get_session_service, get_user_service
-from service.session_service import SessionService
-from service.user_service import UserService
+from users.dependencies import get_user_service
+from users.user import User
+from users.user_service import UserService
 
 from .route_permissions import PermissionRequirement
 

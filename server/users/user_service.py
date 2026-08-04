@@ -2,9 +2,9 @@ import logging
 from dataclasses import dataclass
 
 from api.exceptions import UnprocessableEntityException
-from db.daos.user_dao import UserDAO
 from models.base.id import Id
-from models.user.user import User
+from users.user import User
+from users.user_dao import UserDAO
 
 logger = logging.getLogger(__name__)
 

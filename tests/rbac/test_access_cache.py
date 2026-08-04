@@ -1,10 +1,10 @@
+from auth.authorization_service import AuthorizationService
 from auth.rbac import Permission as P
+from auth.rbac import PermissionTree
 from auth.rbac import RolePermission as RP
+from auth.rbac import TreeStore
 from auth.rbac import UserRole as UR
 from models.base.id import Id
-from service.authorization_service import AuthorizationService
-from service.permission_tree import PermissionTree
-from service.tree_store import TreeStore
 
 
 class UDao:

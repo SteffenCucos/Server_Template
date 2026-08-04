@@ -1,8 +1,8 @@
 import logging
 from functools import wraps
+from inspect import signature
 
 from api.auth.route import AuthzRoute
-from api.decorators.decorator import apply_func, fix_signature
 from db.serializing_middleware import get_application_serializer
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -61,20 +61,19 @@ class Router(APIRouter):
 
     @staticmethod
     def get_serialize_wrapper(func):
-        # Keep the endpoint's name, docs, and custom auth metadata, but retain
-        # this wrapper's Request annotation for FastAPI dependency analysis.
+        # Keep the endpoint's name and docs, but preserve the original route 
+        # signature so FastAPI resolves path params and validation correctly.
         @wraps(
             func,
             assigned=("__module__", "__name__", "__qualname__", "__doc__"),
         )
-        def json_serialize(request: Request, *positional, **named):
-            result = apply_func(func, request, *positional, **named)
+        def json_serialize(*positional, **named):
+            result = func(*positional, **named)
 
             if isinstance(result, HTMLResponse):
                 return result
 
             return JSONResponse(content=serializer.serialize(result))
 
-        fix_signature(json_serialize, func)
-
+        json_serialize.__signature__ = signature(func)
         return json_serialize
