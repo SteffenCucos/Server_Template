@@ -1,6 +1,7 @@
 import logging
 
-from db import DatabaseSettings, MappingSerializer, create_repository
+from db import DatabaseSettings, MappingSerializer
+from db.repository.factory import create_repository
 
 logger = logging.getLogger(__name__)
 
