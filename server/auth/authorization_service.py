@@ -4,7 +4,7 @@ from auth.rbac.tree_store import TreeStore
 from models.base.id import Id
 
 
-_STORE = TreeStore()
+_STORE = TreeStore
 _TREE_CLASS = PermissionTree
 
 
@@ -19,7 +19,7 @@ class AuthorizationService:
         self.user_role_dao = user_role_dao
         self.role_perm_dao = role_perm_dao
         self.perm_dao = perm_dao
-        self.tree_store = tree_store or _STORE
+        self.tree_store = tree_store or _STORE()
 
     def user_has_access(self, user_id: Id | str, required: str) -> bool:
         for role_id in self._role_ids_for_user(user_id):
