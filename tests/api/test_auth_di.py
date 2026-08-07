@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from unittest.mock import create_autospec
 
 from api.auth.dependencies import get_request_context
 from api.auth.route import AuthzRoute
@@ -6,20 +7,11 @@ from api.auth.route_permissions import get_auth_required, get_permission_require
 from api.decorators.authenticated import authenticated
 from api.decorators.check_permissions import check_permission
 from api.router import Router
+from auth.authorization_service import AuthorizationService
 from auth.dependencies import get_authz_service
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.testclient import TestClient
-
-
-class StubAuthorizationService:
-    def __init__(self, allowed: set[str]):
-        self.allowed = allowed
-        self.checked: list[str] = []
-
-    def user_has_access(self, user_id: object, permission: str) -> bool:
-        self.checked.append(permission)
-        return permission in self.allowed
 
 
 def test_authenticated_marks_endpoint():
@@ -71,7 +63,7 @@ def test_check_permission_rejects_missing_user_before_authorization():
     )
 
     assert client.get("/items/42").status_code == 401
-    assert authorization_service.checked == []
+    authorization_service.user_has_access.assert_not_called()
 
 
 def test_check_permission_denies_missing_grant():
@@ -81,7 +73,10 @@ def test_check_permission_denies_missing_grant():
     )
 
     assert client.get("/items/42").status_code == 403
-    assert authorization_service.checked == ["read/items/42"]
+    authorization_service.user_has_access.assert_called_once_with(
+        "user-1",
+        "read/items/42",
+    )
 
 
 def test_check_permission_allows_grant_and_resolves_path_params():
@@ -91,7 +86,10 @@ def test_check_permission_allows_grant_and_resolves_path_params():
     )
 
     assert client.get("/items/42").status_code == 200
-    assert authorization_service.checked == ["read/items/42"]
+    authorization_service.user_has_access.assert_called_once_with(
+        "user-1",
+        "read/items/42",
+    )
 
 
 def _build_client(
@@ -115,7 +113,11 @@ def _build_client(
         session=object() if authenticated else None,
         session_expired=False if authenticated else None,
     )
-    authorization_service = StubAuthorizationService(allowed or set())
+    authorization_service = create_autospec(AuthorizationService, instance=True)
+    allowed_permissions = allowed or set()
+    authorization_service.user_has_access.side_effect = (
+        lambda _user_id, permission: permission in allowed_permissions
+    )
 
     app.dependency_overrides[get_request_context] = lambda: request_context
     app.dependency_overrides[get_authz_service] = lambda: authorization_service

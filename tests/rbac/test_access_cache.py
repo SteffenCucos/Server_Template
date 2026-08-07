@@ -1,40 +1,17 @@
+from unittest.mock import create_autospec
+
 from auth.authorization_service import AuthorizationService
-from auth.rbac import Permission as P
-from auth.rbac import PermissionTree
-from auth.rbac import RolePermission as RP
-from auth.rbac import TreeStore
-from auth.rbac import UserRole as UR
+from auth.rbac import Permission, PermissionTree, RolePermission, TreeStore, UserRole
+from auth.rbac.daos import PermDAO, RolePermDAO, UserRoleDAO
 from models.base.id import Id
 
 
-class UDao:
-    def __init__(self, rows):
-        self.rows = rows
-        self.calls = 0
-
-    def list_for_user(self, user_id):
-        self.calls += 1
-        return [row for row in self.rows if str(row.user_id) == str(user_id)]
-
-
-class RDao:
-    def __init__(self, rows):
-        self.rows = rows
-        self.calls = 0
-
-    def list_for_role(self, role_id):
-        self.calls += 1
-        return [row for row in self.rows if str(row.role_id) == str(role_id)]
-
-
-class PDao:
-    def __init__(self, rows):
-        self.rows = {str(row._id): row for row in rows}
-        self.calls = 0
-
-    def get_by_id(self, row_id):
-        self.calls += 1
-        return self.rows.get(str(row_id))
+def _mock_daos():
+    return (
+        create_autospec(UserRoleDAO, instance=True),
+        create_autospec(RolePermDAO, instance=True),
+        create_autospec(PermDAO, instance=True),
+    )
 
 
 def test_role_store_no_reload_on_no_match():
@@ -47,29 +24,39 @@ def test_role_store_no_reload_on_no_match():
     store.role_ids_by_user_id[str(user_id)] = [str(role_id)]
     store.role_tree_by_role_id[str(role_id)] = role_tree
 
-    udao = UDao([])
-    rdao = RDao([])
-    pdao = PDao([])
-    service = AuthorizationService(udao, rdao, pdao, store)
+    user_role_dao, role_perm_dao, perm_dao = _mock_daos()
+    service = AuthorizationService(user_role_dao, role_perm_dao, perm_dao, store)
 
     assert not service.user_has_access(user_id, "delete/users/123")
-    assert udao.calls == 0
-    assert rdao.calls == 0
-    assert pdao.calls == 0
+    user_role_dao.list_for_user.assert_not_called()
+    role_perm_dao.list_for_role.assert_not_called()
+    perm_dao.get_by_id.assert_not_called()
 
 
 def test_role_store_loads_once():
     user_id = Id("u1")
     role_id = Id("r1")
-    p = P("read/users/*")
+    permission = Permission("read/users/*")
 
-    udao = UDao([UR(user_id=user_id, role_id=role_id)])
-    rdao = RDao([RP(role_id=role_id, permission_id=p._id)])
-    pdao = PDao([p])
-    service = AuthorizationService(udao, rdao, pdao, TreeStore())
+    user_role_dao, role_perm_dao, perm_dao = _mock_daos()
+    user_role_dao.list_for_user.return_value = [
+        UserRole(user_id=user_id, role_id=role_id),
+    ]
+    role_perm_dao.list_for_role.return_value = [
+        RolePermission(role_id=role_id, permission_id=permission._id),
+    ]
+    perm_dao.get_by_id.return_value = permission
+
+    service = AuthorizationService(
+        user_role_dao,
+        role_perm_dao,
+        perm_dao,
+        TreeStore(),
+    )
 
     assert service.user_has_access(user_id, "read/users/123")
     assert service.user_has_access(user_id, "read/users/456")
-    assert udao.calls == 1
-    assert rdao.calls == 1
-    assert pdao.calls == 1
+
+    user_role_dao.list_for_user.assert_called_once_with(user_id)
+    role_perm_dao.list_for_role.assert_called_once_with(role_id)
+    perm_dao.get_by_id.assert_called_once_with(permission._id)
