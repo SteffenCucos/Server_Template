@@ -21,7 +21,7 @@ class SessionService:
         return await self.dao.get_by_id(session_id)
 
     async def get_all(self) -> list[Session]:
-        return await self.dao.list(limit=10_000)
+        return await self.dao.list()
 
     async def end_session(self, session_id: Id | str) -> bool:
         return await self.dao.delete(session_id)

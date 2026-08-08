@@ -41,7 +41,7 @@ class UserService:
         return await self.user_dao.get_by_name(user_name)
 
     async def get_all_users(self) -> list[User]:
-        return await self.user_dao.list(limit=10_000)
+        return await self.user_dao.list()
 
     async def delete_user(self, user: User) -> bool:
         return await self.user_dao.delete(user._id)

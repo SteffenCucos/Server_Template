@@ -71,7 +71,7 @@ class PostgresRepository(Repository[EntityT]):
             if field in {self._id_field, "_id", "id"}:
                 return await self.get_by_id(str(value))
 
-        for entity in await self.list(limit=10_000):
+        for entity in await self.list():
             record = self._serializer.to_record(entity)
             if all(str(record.get(field)) == str(value) for field, value in condition.items()):
                 return entity
