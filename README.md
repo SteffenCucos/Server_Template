@@ -1,19 +1,20 @@
 # Server Template
 
-A FastAPI server template with pre-built application structure, backend-neutral persistence, and a CLI scaffolder.
+A FastAPI server template with pre-built application structure, asynchronous backend-neutral persistence, authentication/RBAC support, and a CLI scaffolder.
 
 Use this repository as a starting point for small API services that need a clean baseline layout instead of starting from an empty FastAPI project.
 
 ## Features
 
-- FastAPI application structure.
-- Organized endpoint modules.
+- FastAPI application structure with async DB-backed request paths.
+- Organized API, service, auth, user, model, and persistence modules.
 - Centralized exception handling pattern.
 - CLI scaffolder that clones this template into a new app folder.
 - Entity-rooted DB model convention with `_id`, `_created_date`, and `_updated_date` on DB-backed models.
-- Backend-neutral repository contract with Mongo, Postgres, and SQLite implementations.
+- Async backend-neutral repository contract with Mongo, Postgres, and SQLite implementations.
+- Native async persistence drivers: PyMongo `AsyncMongoClient`, psycopg async connections, and `aiosqlite`.
 - Entity DAOs that wrap repositories directly and keep shared entity lifecycle rules in one place.
-- FastAPI-native dependency providers for request-scoped DAOs and services.
+- FastAPI-native dependency providers for repositories, DAOs, and services.
 - Route authentication and permission annotations enforced through FastAPI dependency injection.
 
 ## Scaffold a new app
@@ -54,17 +55,19 @@ You can also run the CLI as a module from a checkout of this repo:
 python -m server_template new billing-api
 ```
 
-## Persistence architecture
+## Async persistence architecture
 
-The template separates domain persistence behavior from concrete database backends:
+The template keeps database-specific code at the bottom of the dependency graph and propagates async I/O upward through DAOs, services, and DB-backed endpoints:
 
 ```text
-Endpoint
+Async endpoint / dependency
   -> Service
     -> DAO
       -> Repository[TEntity]
         -> MongoRepository | PostgresRepository | SQLiteRepository
 ```
+
+All actual database operations are awaitable. Pure local work such as serialization, model mutation, and permission-tree evaluation remains synchronous.
 
 Every DB-backed domain model should inherit from `Entity()` or `IdEntity`, which gives it `_id`, `_created_date`, and `_updated_date`.
 
@@ -82,7 +85,7 @@ class Project(Entity()):
 DAOs are the service-facing persistence layer. The generic `EntityDAO[TEntity]` wraps a backend-neutral `Repository[TEntity]` and owns shared entity lifecycle behavior such as ensuring IDs and updating timestamps before persistence.
 
 ```python
-from db.entity_dao import EntityDAO
+from db.daos.entity_dao import EntityDAO
 from db.repository import Repository
 
 
@@ -90,20 +93,37 @@ class ProjectDAO(EntityDAO[Project]):
     def __init__(self, repository: Repository[Project]):
         super().__init__(repository)
 
-    def get_by_name(self, name: str) -> Project | None:
-        return self.find_one({"name": name})
+    async def get_by_name(self, name: str) -> Project | None:
+        return await self.find_one({"name": name})
 ```
 
-Concrete repository implementations live under `server/db/backends` and own driver-specific connection details. Endpoint, service, and DAO code should not use `pymongo`, `psycopg`, SQLAlchemy, collection, cursor, or transaction/session types directly.
+Concrete repository implementations live under `server/db/repository` and own driver-specific connection details. API, service, and DAO code should not use `pymongo`, `psycopg`, `aiosqlite`, collection, cursor, or connection types directly.
+
+The repository contract is async:
+
+```python
+entity = await repo.create(entity)
+entity = await repo.get_by_id("entity-id")
+entity = await repo.find_one({"email": "user@example.com"})
+entities = await repo.list(limit=100, offset=0)
+entity = await repo.update("entity-id", {"field": "value"})
+deleted = await repo.delete("entity-id")
+await repo.close()
+```
+
+Repository objects can still be constructed synchronously. Async is used where I/O actually occurs, so constructors and serializers do not need to become awaitable simply because they participate in the persistence stack.
 
 ## FastAPI dependency injection
 
 Prefer injecting services into endpoints. Services depend on DAOs, and DAOs depend on repositories. Keep `Depends(...)` visible at the point where each dependency is requested instead of hiding it behind type aliases.
 
+Dependency providers that only construct objects can remain ordinary synchronous functions:
+
 ```python
 from typing import Annotated
 
 from fastapi import Depends
+
 from db.dependencies import repository_dependency
 from db.pserialize_entity_serializer import PSerializeEntitySerializer
 from db.repository import Repository
@@ -129,22 +149,22 @@ def get_project_service(
     return ProjectService(project_dao)
 ```
 
-Endpoints should also inline their dependency annotations:
+DB-backed endpoint functions should be async and await service operations:
 
 ```python
 @router.get("/{project_id}")
-def get_project(
+async def get_project(
     project_id: str,
     project_service: Annotated[ProjectService, Depends(get_project_service)],
 ) -> Project:
-    ...
+    return await project_service.get_by_id(project_id)
 ```
 
 The template includes ready-made `UserDAO`, `SessionDAO`, and service dependency providers for the starter user/session routes.
 
 ## Route authentication and permissions
 
-Use the existing route annotations. They attach metadata only; the custom router converts that metadata into FastAPI dependencies during route registration.
+Use the existing route annotations. They attach metadata only; the custom router converts that metadata into FastAPI dependencies during route registration while preserving async endpoint execution.
 
 Authentication-only route:
 
@@ -154,7 +174,7 @@ from api.decorators.authenticated import authenticated
 
 @router.get("/me")
 @authenticated()
-def get_me():
+async def get_me():
     ...
 ```
 
@@ -166,11 +186,11 @@ from api.decorators.check_permissions import check_permission
 
 @router.get("/{project_id}")
 @check_permission("read/projects/{project_id}")
-def get_project(project_id: str):
+async def get_project(project_id: str):
     ...
 ```
 
-`check_permission(...)` implies authentication. Permission templates can reference route path parameters, which are resolved before `AuthorizationService` is called.
+`check_permission(...)` implies authentication. Permission templates can reference route path parameters, which are resolved before the async `AuthorizationService` access check is awaited.
 
 ## Database backend selection
 
@@ -182,7 +202,9 @@ APP_DB_URI=mongodb://localhost:27017
 APP_DB_NAME=my_app
 ```
 
-or:
+Mongo uses PyMongo's native async client.
+
+Or use Postgres:
 
 ```bash
 APP_DB_BACKEND=postgres
@@ -190,7 +212,9 @@ APP_DB_URI=postgresql://postgres:postgres@localhost:5432/my_app
 APP_DB_NAME=my_app
 ```
 
-or:
+Postgres uses psycopg's async connection API.
+
+Or use SQLite:
 
 ```bash
 APP_DB_BACKEND=sqlite
@@ -198,17 +222,9 @@ APP_DB_URI=sqlite:///my_app.db
 APP_DB_NAME=my_app
 ```
 
-The repository interface intentionally only exposes application entities and primitive Python values:
+SQLite uses `aiosqlite` so SQLite operations do not block the FastAPI event loop.
 
-```python
-repo.create(entity)
-repo.get_by_id("entity-id")
-repo.find_one({"email": "user@example.com"})
-repo.list(limit=100, offset=0)
-repo.update("entity-id", {"field": "value"})
-repo.delete("entity-id")
-repo.close()
-```
+The repository interface intentionally exposes only application entities and primitive Python values. Database-driver types stay behind the repository boundary.
 
 ## Setup this template repo locally
 
@@ -221,29 +237,28 @@ pip install -r requirements.txt
 Run the development server:
 
 ```bash
-uvicorn main:app --reload
+uvicorn server.main:app --reload
 ```
-
-If the application entry point differs, replace `main:app` with the correct module path.
 
 ## Suggested project structure
 
 ```text
 .
-├── endpoints/
-├── exceptions/
-├── models/
 ├── server/
-│   └── db/
-│       ├── backends/
-│       ├── config.py
-│       ├── dependencies.py
-│       ├── entity_dao.py
-│       ├── factory.py
-│       ├── pserialize_entity_serializer.py
-│       ├── repository.py
-│       ├── session_dao.py
-│       └── user_dao.py
+│   ├── api/
+│   ├── auth/
+│   ├── db/
+│   │   ├── daos/
+│   │   ├── repository/
+│   │   ├── config.py
+│   │   ├── dependencies.py
+│   │   └── pserialize_entity_serializer.py
+│   ├── models/
+│   ├── service/
+│   ├── users/
+│   └── main.py
+├── server_template/
+├── tests/
 ├── requirements.txt
 ├── pyproject.toml
 └── README.md
@@ -256,10 +271,11 @@ If the application entry point differs, replace `main:app` with the correct modu
 3. Pick `APP_DB_BACKEND=mongo`, `postgres`, or `sqlite`.
 4. Add domain models that inherit from `Entity()`.
 5. Add domain DAOs that inherit from `EntityDAO[TEntity]`.
-6. Add services that depend on DAOs, not concrete DB drivers.
-7. Add endpoint modules that depend on services through FastAPI `Depends(...)` providers.
-8. Add `@authenticated()` or `@check_permission(...)` where route access must be restricted.
-9. Add tests before using it as a production service.
+6. Make persistence-facing DAO methods async and await repository operations.
+7. Add services that depend on DAOs, not concrete DB drivers, and await I/O-performing DAO methods.
+8. Add async DB-backed endpoints that depend on services through FastAPI `Depends(...)` providers.
+9. Add `@authenticated()` or `@check_permission(...)` where route access must be restricted.
+10. Add tests before using it as a production service.
 
 ## Status
 
@@ -297,4 +313,4 @@ py -3 -m venv .venv
 .venv\Scripts\pip.exe install -r requirements.txt
 ```
 
-If you prefer not to activate the environment, you can run the venv Python/pip directly from `.venv\Scripts\`.
+If you prefer not to activate the environment, you can run the venv Python/pip directly from `.venv\Scripts/`.
