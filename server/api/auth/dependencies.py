@@ -1,7 +1,7 @@
 """FastAPI dependencies that enforce route authentication and permissions."""
 
 import logging
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from typing import Annotated
 
 from api.exceptions import ForbiddenException, UnauthorizedException
@@ -19,11 +19,11 @@ from .route_permissions import PermissionRequirement
 logger = logging.getLogger(__name__)
 
 
-def get_request_context(
+async def get_request_context(
     request: Request,
     session_service: Annotated[SessionService, Depends(get_session_service)],
     user_service: Annotated[UserService, Depends(get_user_service)],
-) -> Iterator[RequestContext]:
+) -> AsyncIterator[RequestContext]:
     """Build and clean up the caller context inside FastAPI's DI lifecycle."""
     request_context = RequestContext.set_context()
     request_context.filled = True
@@ -33,13 +33,13 @@ def get_request_context(
 
     try:
         if session_id:
-            session = session_service.get_session(session_id)
+            session = await session_service.get_session(session_id)
             if session:
                 request_context.session = session
                 request_context.current_user_id = session.user_id
                 request_context.session_expired = session.is_expired()
 
-                user = user_service.get_user(session.user_id)
+                user = await user_service.get_user(session.user_id)
                 if user:
                     request_context.current_user = user
 
@@ -74,7 +74,7 @@ class RequirePermission:
     def __init__(self, requirement: PermissionRequirement):
         self.requirement = requirement
 
-    def __call__(
+    async def __call__(
         self,
         request: Request,
         user: Annotated[User, Depends(require_current_user)],
@@ -87,7 +87,7 @@ class RequirePermission:
             self.requirement.permission,
             request,
         )
-        if authorization_service.user_has_access(user._id, permission):
+        if await authorization_service.user_has_access(user._id, permission):
             return
 
         logger.info(

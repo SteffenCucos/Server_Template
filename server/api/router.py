@@ -1,12 +1,11 @@
 import logging
 from functools import wraps
-from inspect import signature
+from inspect import iscoroutinefunction, signature
 
 from api.auth.route import AuthzRoute
 from db.serializing_middleware import get_application_serializer
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, JSONResponse
-from starlette.requests import Request
 
 serializer = get_application_serializer()
 
@@ -61,19 +60,31 @@ class Router(APIRouter):
 
     @staticmethod
     def get_serialize_wrapper(func):
-        # Keep the endpoint's name and docs, but preserve the original route 
-        # signature so FastAPI resolves path params and validation correctly.
-        @wraps(
-            func,
-            assigned=("__module__", "__name__", "__qualname__", "__doc__"),
-        )
-        def json_serialize(*positional, **named):
-            result = func(*positional, **named)
-
-            if isinstance(result, HTMLResponse):
-                return result
-
-            return JSONResponse(content=serializer.serialize(result))
+        # Preserve the endpoint execution model. FastAPI runs synchronous route
+        # handlers in its thread pool, while async handlers must be awaited on
+        # the event loop before their result can be serialized.
+        if iscoroutinefunction(func):
+            @wraps(
+                func,
+                assigned=("__module__", "__name__", "__qualname__", "__doc__"),
+            )
+            async def json_serialize(*positional, **named):
+                result = await func(*positional, **named)
+                return Router._serialize_result(result)
+        else:
+            @wraps(
+                func,
+                assigned=("__module__", "__name__", "__qualname__", "__doc__"),
+            )
+            def json_serialize(*positional, **named):
+                result = func(*positional, **named)
+                return Router._serialize_result(result)
 
         json_serialize.__signature__ = signature(func)
         return json_serialize
+
+    @staticmethod
+    def _serialize_result(result):
+        if isinstance(result, HTMLResponse):
+            return result
+        return JSONResponse(content=serializer.serialize(result))

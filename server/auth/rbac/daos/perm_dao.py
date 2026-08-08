@@ -10,5 +10,5 @@ class PermDAO(EntityDAO[Permission]):
     def __init__(self, repository: Repository[Permission]):
         super().__init__(repository)
 
-    def get_by_key(self, key: str) -> Permission | None:
-        return self.find_one({"key": key})
+    async def get_by_key(self, key: str) -> Permission | None:
+        return await self.find_one({"key": key})

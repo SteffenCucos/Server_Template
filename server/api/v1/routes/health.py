@@ -11,10 +11,10 @@ router = Router(
 
 
 @router.get("")
-def status(
+async def status(
     health_service: HealthService = Depends(HealthService),
 ):
     return {
         "running": True,
-        "database": health_service.database_health_check(),
+        "database": await health_service.database_health_check(),
     }

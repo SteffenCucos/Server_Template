@@ -13,19 +13,19 @@ class SessionService:
     def __init__(self, dao: SessionDAO):
         self.dao = dao
 
-    def create_session(self, user: User) -> Session:
+    async def create_session(self, user: User) -> Session:
         session = Session(user._id)
-        return self.dao.create(session)
+        return await self.dao.create(session)
 
-    def get_session(self, session_id: Id | str) -> Session | None:
-        return self.dao.get_by_id(session_id)
+    async def get_session(self, session_id: Id | str) -> Session | None:
+        return await self.dao.get_by_id(session_id)
 
-    def get_all(self) -> list[Session]:
-        return self.dao.list(limit=10_000)
+    async def get_all(self) -> list[Session]:
+        return await self.dao.list(limit=10_000)
 
-    def end_session(self, session_id: Id | str) -> bool:
-        return self.dao.delete(session_id)
+    async def end_session(self, session_id: Id | str) -> bool:
+        return await self.dao.delete(session_id)
 
-    def end_sessions_for_user(self, user_id: Id | str) -> None:
-        for session in self.dao.list_for_user(user_id):
-            self.end_session(session._id)
+    async def end_sessions_for_user(self, user_id: Id | str) -> None:
+        for session in await self.dao.list_for_user(user_id):
+            await self.end_session(session._id)

@@ -63,7 +63,7 @@ def test_check_permission_rejects_missing_user_before_authorization():
     )
 
     assert client.get("/items/42").status_code == 401
-    authorization_service.user_has_access.assert_not_called()
+    authorization_service.user_has_access.assert_not_awaited()
 
 
 def test_check_permission_denies_missing_grant():
@@ -73,7 +73,7 @@ def test_check_permission_denies_missing_grant():
     )
 
     assert client.get("/items/42").status_code == 403
-    authorization_service.user_has_access.assert_called_once_with(
+    authorization_service.user_has_access.assert_awaited_once_with(
         "user-1",
         "read/items/42",
     )
@@ -86,7 +86,7 @@ def test_check_permission_allows_grant_and_resolves_path_params():
     )
 
     assert client.get("/items/42").status_code == 200
-    authorization_service.user_has_access.assert_called_once_with(
+    authorization_service.user_has_access.assert_awaited_once_with(
         "user-1",
         "read/items/42",
     )

@@ -1,26 +1,23 @@
-"""SQLite implementation of the backend-neutral repository contract.
-
-This implementation stores each entity as an id plus JSON payload. It is useful
-for local development, lightweight services, and in-memory CI tests.
-"""
+"""Async SQLite implementation of the backend-neutral repository contract."""
 
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+import aiosqlite
+
 from .repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
 _MEMORY_SQLITE_URIS = {":memory:", "sqlite:///:memory:"}
-_SHARED_MEMORY_CONNECTIONS: dict[str, sqlite3.Connection] = {}
+_SHARED_MEMORY_CONNECTIONS: dict[str, aiosqlite.Connection] = {}
 
 
 class SQLiteRepository(Repository[EntityT]):
-    """Repository implementation backed by SQLite."""
+    """Repository implementation backed by aiosqlite."""
 
     def __init__(
         self,
@@ -32,93 +29,134 @@ class SQLiteRepository(Repository[EntityT]):
         data_column: str = "data",
         ensure_table: bool = True,
     ) -> None:
-        self._connection, self._owns_connection = _create_sqlite_connection(uri)
-        self._connection.row_factory = sqlite3.Row
+        self._uri = uri
         self._table = table
         self._serializer = serializer
         self._id_field = id_field
         self._data_column = data_column
+        self._ensure_table_on_connect = ensure_table
+        self._connection: aiosqlite.Connection | None = None
+        self._owns_connection = uri not in _MEMORY_SQLITE_URIS
+        self._table_ready = False
 
-        if ensure_table:
-            self._ensure_table()
-
-    def create(self, entity: EntityT) -> EntityT:
+    async def create(self, entity: EntityT) -> EntityT:
+        connection = await self._get_connection()
         record = dict(self._serializer.to_record(entity))
         entity_id = self._extract_id(record)
         payload = self._payload_without_id(record)
 
-        self._connection.execute(
+        cursor = await connection.execute(
             f'INSERT INTO "{self._table}" (id, "{self._data_column}") VALUES (?, ?)',
             (entity_id, json.dumps(payload, default=str)),
         )
-        self._connection.commit()
-        return self.get_by_id(entity_id)
+        await cursor.close()
+        await connection.commit()
+        stored = await self.get_by_id(entity_id)
+        if stored is None:
+            raise LookupError("inserted entity could not be read back")
+        return stored
 
-    def get_by_id(self, entity_id: str) -> EntityT | None:
-        row = self._connection.execute(
+    async def get_by_id(self, entity_id: str) -> EntityT | None:
+        connection = await self._get_connection()
+        cursor = await connection.execute(
             f'SELECT id, "{self._data_column}" FROM "{self._table}" WHERE id = ?',
             (entity_id,),
-        ).fetchone()
+        )
+        row = await cursor.fetchone()
+        await cursor.close()
         if row is None:
             return None
         return self._row_to_entity(row)
 
-    def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
+    async def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
         if not condition:
-            entities = self.list(limit=1)
+            entities = await self.list(limit=1)
             return entities[0] if entities else None
 
         if len(condition) == 1:
             field, value = next(iter(condition.items()))
             if field in {self._id_field, "_id", "id"}:
-                return self.get_by_id(str(value))
+                return await self.get_by_id(str(value))
 
-        for entity in self.list(limit=10_000):
+        for entity in await self.list(limit=10_000):
             record = self._serializer.to_record(entity)
             if all(str(record.get(field)) == str(value) for field, value in condition.items()):
                 return entity
         return None
 
-    def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
-        rows = self._connection.execute(
-            f'SELECT id, "{self._data_column}" FROM "{self._table}" ORDER BY id ASC LIMIT ? OFFSET ?',
+    async def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
+        connection = await self._get_connection()
+        cursor = await connection.execute(
+            f'SELECT id, "{self._data_column}" FROM "{self._table}" '
+            "ORDER BY id ASC LIMIT ? OFFSET ?",
             (limit if limit > 0 else -1, offset),
-        ).fetchall()
+        )
+        rows = await cursor.fetchall()
+        await cursor.close()
         return [self._row_to_entity(row) for row in rows]
 
-    def update(self, entity_id: str, changes: Mapping[str, Any]) -> EntityT | None:
-        current = self.get_by_id(entity_id)
+    async def update(self, entity_id: str, changes: Mapping[str, Any]) -> EntityT | None:
+        connection = await self._get_connection()
+        current = await self.get_by_id(entity_id)
         if current is None:
             return None
 
         record = self._serializer.to_record(current)
-        record.update({key: value for key, value in changes.items() if key != self._id_field})
+        record.update(
+            {key: value for key, value in changes.items() if key != self._id_field}
+        )
         payload = self._payload_without_id(record)
-        self._connection.execute(
+        cursor = await connection.execute(
             f'UPDATE "{self._table}" SET "{self._data_column}" = ? WHERE id = ?',
             (json.dumps(payload, default=str), entity_id),
         )
-        self._connection.commit()
-        return self.get_by_id(entity_id)
+        await cursor.close()
+        await connection.commit()
+        return await self.get_by_id(entity_id)
 
-    def delete(self, entity_id: str) -> bool:
-        cursor = self._connection.execute(
+    async def delete(self, entity_id: str) -> bool:
+        connection = await self._get_connection()
+        cursor = await connection.execute(
             f'DELETE FROM "{self._table}" WHERE id = ?',
             (entity_id,),
         )
-        self._connection.commit()
-        return cursor.rowcount > 0
+        deleted_count = cursor.rowcount
+        await cursor.close()
+        await connection.commit()
+        return deleted_count > 0
 
-    def close(self) -> None:
-        if self._owns_connection:
-            self._connection.close()
+    async def close(self) -> None:
+        if self._connection is not None and self._owns_connection:
+            await self._connection.close()
+        self._connection = None
+        self._table_ready = False
 
-    def _ensure_table(self) -> None:
-        self._connection.execute(
+    async def _get_connection(self) -> aiosqlite.Connection:
+        if self._connection is None:
+            if self._uri in _MEMORY_SQLITE_URIS:
+                connection = _SHARED_MEMORY_CONNECTIONS.get(self._uri)
+                if connection is None:
+                    connection = await aiosqlite.connect(":memory:")
+                    connection.row_factory = aiosqlite.Row
+                    _SHARED_MEMORY_CONNECTIONS[self._uri] = connection
+                self._connection = connection
+            else:
+                self._connection = await aiosqlite.connect(_sqlite_path_from_uri(self._uri))
+                self._connection.row_factory = aiosqlite.Row
+
+        if self._ensure_table_on_connect and not self._table_ready:
+            await self._ensure_table(self._connection)
+            self._table_ready = True
+
+        return self._connection
+
+    async def _ensure_table(self, connection: aiosqlite.Connection) -> None:
+        cursor = await connection.execute(
             f'CREATE TABLE IF NOT EXISTS "{self._table}" ('
             f'id TEXT PRIMARY KEY, "{self._data_column}" TEXT NOT NULL DEFAULT "{{}}")'
         )
-        self._connection.commit()
+        await cursor.close()
+        await connection.commit()
 
     def _extract_id(self, record: Mapping[str, Any]) -> str:
         if self._id_field not in record:
@@ -128,20 +166,11 @@ class SQLiteRepository(Repository[EntityT]):
     def _payload_without_id(self, record: Mapping[str, Any]) -> dict[str, Any]:
         return {key: value for key, value in record.items() if key != self._id_field}
 
-    def _row_to_entity(self, row: sqlite3.Row) -> EntityT:
+    def _row_to_entity(self, row: aiosqlite.Row) -> EntityT:
         payload = json.loads(row[self._data_column] or "{}")
         record = dict(payload)
         record[self._id_field] = row["id"]
         return self._serializer.from_record(record)
-
-
-def _create_sqlite_connection(uri: str) -> tuple[sqlite3.Connection, bool]:
-    if uri in _MEMORY_SQLITE_URIS:
-        if uri not in _SHARED_MEMORY_CONNECTIONS:
-            _SHARED_MEMORY_CONNECTIONS[uri] = sqlite3.connect(":memory:", check_same_thread=False)
-        return _SHARED_MEMORY_CONNECTIONS[uri], False
-
-    return sqlite3.connect(_sqlite_path_from_uri(uri), check_same_thread=False), True
 
 
 def _sqlite_path_from_uri(uri: str) -> str:

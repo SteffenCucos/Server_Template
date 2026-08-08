@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 class HealthService:
-    def database_health_check(self) -> bool:
+    async def database_health_check(self) -> bool:
         repository = None
         try:
             repository = create_repository(
@@ -15,11 +15,11 @@ class HealthService:
                 resource_name="health",
                 serializer=MappingSerializer(),
             )
-            repository.list(limit=1)
+            await repository.list(limit=1)
             return True
         except Exception as err:
             logger.error(err)
             return False
         finally:
             if repository is not None:
-                repository.close()
+                await repository.close()
