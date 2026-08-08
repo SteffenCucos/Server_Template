@@ -79,31 +79,17 @@ class PostgresRepository(Repository[EntityT]):
 
     async def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         connection = await self._get_connection()
-        if limit > 0:
-            query = sql.SQL(
-                "SELECT id, {data_column} "
-                "FROM {table} "
-                "ORDER BY id ASC "
-                "LIMIT %s OFFSET %s"
-            ).format(
-                table=sql.Identifier(self._table),
-                data_column=sql.Identifier(self._data_column),
-            )
-            params = (limit, offset)
-        else:
-            query = sql.SQL(
-                "SELECT id, {data_column} "
-                "FROM {table} "
-                "ORDER BY id ASC "
-                "OFFSET %s"
-            ).format(
-                table=sql.Identifier(self._table),
-                data_column=sql.Identifier(self._data_column),
-            )
-            params = (offset,)
-
+        query = sql.SQL(
+            "SELECT id, {data_column} "
+            "FROM {table} "
+            "ORDER BY id ASC "
+            "LIMIT %s OFFSET %s"
+        ).format(
+            table=sql.Identifier(self._table),
+            data_column=sql.Identifier(self._data_column),
+        )
         async with connection.cursor() as cursor:
-            await cursor.execute(query, params)
+            await cursor.execute(query, (limit if limit > 0 else "ALL", offset))
             rows = await cursor.fetchall()
         return [self._row_to_entity(row) for row in rows]
 
