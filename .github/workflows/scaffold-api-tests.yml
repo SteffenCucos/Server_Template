@@ -46,6 +46,9 @@ jobs:
       APP_DB_URI: ${{ matrix.uri }}
       APP_DB_NAME: scaffold_api_tests
       PYTHONPATH: "${{ github.workspace }}/test-scafold/app/server:${{ github.workspace }}/test-scafold/app"
+      PYMONGOIM__MONGO_VERSION: "8.0"
+      PYMONGOIM__OPERATING_SYSTEM: ubuntu
+      PYMONGOIM__OS_VERSION: "24"
 
     steps:
       - name: Check out repository
