@@ -10,5 +10,5 @@ class RoleDAO(EntityDAO[Role]):
     def __init__(self, repository: Repository[Role]):
         super().__init__(repository)
 
-    def get_by_name(self, name: str) -> Role | None:
-        return self.find_one({"name": name})
+    async def get_by_name(self, name: str) -> Role | None:
+        return await self.find_one({"name": name})

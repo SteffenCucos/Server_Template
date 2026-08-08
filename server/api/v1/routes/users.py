@@ -20,19 +20,19 @@ router = Router(
 
 
 @router.post("")
-def create_user(
+async def create_user(
     user_request: CreateUserRequest,
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> str:
-    user = user_service.create_user(user_request)
+    user = await user_service.create_user(user_request)
     return str(user._id)
 
 
 @router.get("")
-def get_all_users(
+async def get_all_users(
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> list[User]:
-    all_users = user_service.get_all_users()
+    all_users = await user_service.get_all_users()
 
     # Filter out all users the calling user doesn't have permission to see
     filtered = all_users
@@ -42,11 +42,11 @@ def get_all_users(
 
 @router.get("/{user_id}")
 @check_permission("read/users/{user_id}")
-def get_user(
+async def get_user(
     user_id: str,
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> User:
-    user = user_service.get_user(user_id)
+    user = await user_service.get_user(user_id)
     if not user:
         raise NotFoundException(f"User with id:{user_id} does not exist")
 
@@ -55,17 +55,17 @@ def get_user(
 
 @router.delete("/{user_id}")
 @check_permission("delete/users/{user_id}")
-def delete_user(
+async def delete_user(
     user_id: str,
     user_service: Annotated[UserService, Depends(get_user_service)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
 ) -> User:
-    user = user_service.get_user(user_id)
+    user = await user_service.get_user(user_id)
     if not user:
         raise NotFoundException(f"User with id:{user_id} does not exist")
 
     # Find any sessions associated with the user and delete them
-    session_service.end_sessions_for_user(user_id)
+    await session_service.end_sessions_for_user(user_id)
 
-    user_service.delete_user(user)
+    await user_service.delete_user(user)
     return user

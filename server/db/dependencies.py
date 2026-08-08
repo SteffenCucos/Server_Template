@@ -1,26 +1,15 @@
-"""FastAPI dependency providers for repository and DAO injection."""
+"""FastAPI dependency providers for repository injection."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
-from typing import TYPE_CHECKING, Annotated, TypeVar
+from collections.abc import AsyncIterator, Callable
+from typing import TypeVar
 
-from auth.rbac import Permission as PermModel
-from auth.rbac import Role, RolePermission, UserRole
-from auth.session.session import Session
 from fastapi import Depends
-from users.user import User
-
-from auth.session.session_dao import SessionDAO
 
 from .config import DatabaseSettings
-from .repository.factory import create_repository
-from .pserialize_entity_serializer import PSerializeEntitySerializer
 from .repository import EntitySerializer, Repository
-from users.user_dao import UserDAO
-
-if TYPE_CHECKING:
-    from auth.rbac.daos import PermDAO, RoleDAO, RolePermDAO, UserRoleDAO
+from .repository.factory import create_repository
 
 EntityT = TypeVar("EntityT")
 
@@ -34,10 +23,10 @@ def repository_dependency(
     resource_name: str,
     serializer: EntitySerializer[EntityT],
     id_field: str = "_id",
-) -> Callable[..., Iterator[Repository[EntityT]]]:
-    def get_repository(
+) -> Callable[..., AsyncIterator[Repository[EntityT]]]:
+    async def get_repository(
         settings: DatabaseSettings = Depends(get_database_settings),
-    ) -> Iterator[Repository[EntityT]]:
+    ) -> AsyncIterator[Repository[EntityT]]:
         repository = create_repository(
             settings=settings,
             resource_name=resource_name,
@@ -47,7 +36,6 @@ def repository_dependency(
         try:
             yield repository
         finally:
-            repository.close()
+            await repository.close()
 
     return get_repository
-

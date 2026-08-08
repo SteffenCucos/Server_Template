@@ -24,25 +24,25 @@ router = Router(
 
 
 @router.get("")
-def get_sessions(
+async def get_sessions(
     user_service: Annotated[UserService, Depends(get_user_service)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
 ):
-    sessions = session_service.get_all()
-
-    def session_li(session: Session) -> str:
-        user = user_service.get_user(session.user_id)
+    sessions = await session_service.get_all()
+    session_items: list[str] = []
+    for session in sessions:
+        user = await user_service.get_user(session.user_id)
         user_name = user.user_name if user else "User DNE"
-        return "<li>" + session._id + ": " + user_name + "</li>"
+        session_items.append("<li>" + session._id + ": " + user_name + "</li>")
 
-    session_li = "\n".join([session_li(session) for session in sessions])
+    session_list = "\n".join(session_items)
 
     html_content = """
     <html>
         <body>
             <h1>Sessions</h1>
             <ul>
-    """ + session_li + """
+    """ + session_list + """
             </ul>
         </body>
     </html>
@@ -58,29 +58,24 @@ class LoginBody:
 
 
 @router.post("/login")
-def login(
+async def login(
     credentials: LoginBody,
     user_service: Annotated[UserService, Depends(get_user_service)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
 ):
-    user = user_service.get_user_by_name(credentials.user_name)
+    user = await user_service.get_user_by_name(credentials.user_name)
 
     if not user or user.password != credentials.password:
         raise UnauthorizedException("Incorrect user name or password")
 
-    session = session_service.create_session(user)
-
-    # response = RedirectResponse(url='/')
-    # response.set_cookie('Authorization', value=session['session_id'], httponly=True)
-    # return response
-
+    session = await session_service.create_session(user)
     return session._id
 
 
 @router.get("/logout")
 @authenticated()
-def logout(
+async def logout(
     request_context: Annotated[RequestContext, Depends(get_request_context)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
 ):
-    session_service.end_session(request_context.session_id)
+    await session_service.end_session(request_context.session_id)

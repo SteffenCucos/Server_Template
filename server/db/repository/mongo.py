@@ -1,22 +1,26 @@
-"""Mongo implementation of the backend-neutral repository contract."""
+"""Async Mongo implementation of the backend-neutral repository contract."""
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
+from threading import Lock
 from typing import Any
 
 from .repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
-MEMORY_MONGO_URIS = {"memory://", "mongo://memory", "mongodb://memory", "mongodb://in-memory"}
-_SHARED_MEMORY_CLIENTS: dict[str, object] = {}
+MEMORY_MONGO_URIS = {
+    "memory://",
+    "mongo://memory",
+    "mongodb://memory",
+    "mongodb://in-memory",
+}
+_SHARED_MEMORY_SERVERS: dict[str, object] = {}
+_MEMORY_SERVER_LOCK = Lock()
 
 
 class MongoRepository(Repository[EntityT]):
-    """Repository implementation backed by MongoDB.
-
-    Public constructor arguments are plain strings and serializers. pymongo
-    collection/client objects are created and kept internally.
-    """
+    """Repository implementation backed by PyMongo's native async API."""
 
     def __init__(
         self,
@@ -27,42 +31,51 @@ class MongoRepository(Repository[EntityT]):
         serializer: EntitySerializer[EntityT],
         id_field: str = "id",
     ) -> None:
-        self._client, self._owns_client = _create_mongo_client(uri)
-        self._collection = self._client[database][collection]
+        self._uri = uri
+        self._database = database
+        self._collection_name = collection
         self._serializer = serializer
         self._id_field = id_field
+        self._client = None
+        self._collection = None
 
-    def create(self, entity: EntityT) -> EntityT:
+    async def create(self, entity: EntityT) -> EntityT:
+        collection = await self._get_collection()
         record = self._to_backend_record(self._serializer.to_record(entity))
-        self._collection.insert_one(record)
+        await collection.insert_one(record)
         return self._from_backend_record(record)
 
-    def get_by_id(self, entity_id: str) -> EntityT | None:
-        record = self._collection.find_one({"_id": entity_id})
+    async def get_by_id(self, entity_id: str) -> EntityT | None:
+        collection = await self._get_collection()
+        record = await collection.find_one({"_id": entity_id})
         if record is None:
             return None
         return self._from_backend_record(record)
 
-    def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
-        record = self._collection.find_one(self._to_backend_condition(condition))
+    async def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
+        collection = await self._get_collection()
+        record = await collection.find_one(self._to_backend_condition(condition))
         if record is None:
             return None
         return self._from_backend_record(record)
 
-    def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
-        cursor = self._collection.find({}).sort("_id", 1).skip(offset)
+    async def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
+        collection = await self._get_collection()
+        cursor = collection.find({}).sort("_id", 1).skip(offset)
         if limit > 0:
             cursor = cursor.limit(limit)
-        return [self._from_backend_record(record) for record in cursor]
+        records = await cursor.to_list(None)
+        return [self._from_backend_record(record) for record in records]
 
-    def update(self, entity_id: str, changes: Mapping[str, Any]) -> EntityT | None:
+    async def update(self, entity_id: str, changes: Mapping[str, Any]) -> EntityT | None:
         from pymongo import ReturnDocument
 
         update_record = self._to_backend_patch(changes)
         if not update_record:
-            return self.get_by_id(entity_id)
+            return await self.get_by_id(entity_id)
 
-        record = self._collection.find_one_and_update(
+        collection = await self._get_collection()
+        record = await collection.find_one_and_update(
             {"_id": entity_id},
             {"$set": update_record},
             return_document=ReturnDocument.AFTER,
@@ -71,13 +84,32 @@ class MongoRepository(Repository[EntityT]):
             return None
         return self._from_backend_record(record)
 
-    def delete(self, entity_id: str) -> bool:
-        result = self._collection.delete_one({"_id": entity_id})
+    async def delete(self, entity_id: str) -> bool:
+        collection = await self._get_collection()
+        result = await collection.delete_one({"_id": entity_id})
         return result.deleted_count > 0
 
-    def close(self) -> None:
-        if self._owns_client:
-            self._client.close()
+    async def close(self) -> None:
+        if self._client is not None:
+            await self._client.close()
+            self._client = None
+            self._collection = None
+
+    async def _get_collection(self):
+        if self._collection is not None:
+            return self._collection
+
+        from pymongo import AsyncMongoClient
+
+        uri = self._uri
+        if uri in MEMORY_MONGO_URIS:
+            server = await asyncio.to_thread(_get_memory_mongo_server, uri)
+            host, port = server.address
+            uri = f"mongodb://{host}:{port}"
+
+        self._client = AsyncMongoClient(uri)
+        self._collection = self._client[self._database][self._collection_name]
+        return self._collection
 
     def _to_backend_record(self, record: Mapping[str, Any]) -> dict[str, Any]:
         backend_record = dict(record)
@@ -114,14 +146,13 @@ class MongoRepository(Repository[EntityT]):
         return self._serializer.from_record(public_record)
 
 
-def _create_mongo_client(uri: str):
-    if uri in MEMORY_MONGO_URIS:
-        from pymongo_inmemory import MongoClient
+def _get_memory_mongo_server(uri: str):
+    """Start one ephemeral mongod for test-only memory URIs."""
+    with _MEMORY_SERVER_LOCK:
+        if uri not in _SHARED_MEMORY_SERVERS:
+            from pymongo_inmemory import MongoClient
 
-        if uri not in _SHARED_MEMORY_CLIENTS:
-            _SHARED_MEMORY_CLIENTS[uri] = MongoClient()
-        return _SHARED_MEMORY_CLIENTS[uri], False
-
-    from pymongo import MongoClient
-
-    return MongoClient(uri), True
+            client = MongoClient()
+            client.admin.command("ping")
+            _SHARED_MEMORY_SERVERS[uri] = client
+        return _SHARED_MEMORY_SERVERS[uri]

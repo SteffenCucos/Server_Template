@@ -16,12 +16,7 @@ Record = dict[str, Any]
 
 
 class EntitySerializer(ABC, Generic[EntityT]):
-    """Convert between application entities and plain persistence records.
-
-    Implement this per model when your entity is a dataclass, Pydantic model, or
-    other domain object. The returned record must contain only JSON-like Python
-    values if it is going to be stored by both Mongo and Postgres backends.
-    """
+    """Convert between application entities and plain persistence records."""
 
     @abstractmethod
     def to_record(self, entity: EntityT) -> Record:
@@ -45,46 +40,40 @@ class MappingSerializer(EntitySerializer[Record]):
 
 
 class Repository(ABC, Generic[EntityT]):
-    """Minimal CRUD contract shared by every storage backend.
-
-    This abstraction intentionally avoids pymongo, psycopg, SQLAlchemy, cursor,
-    collection, query-builder, or transaction/session types. Backend-specific
-    implementations can use those internally, but endpoint/service code should
-    only depend on this base interface through DAOs.
-    """
+    """Minimal async CRUD contract shared by every storage backend."""
 
     @abstractmethod
-    def create(self, entity: EntityT) -> EntityT:
+    async def create(self, entity: EntityT) -> EntityT:
         """Persist a new entity and return the stored entity."""
         raise NotImplementedError
 
     @abstractmethod
-    def get_by_id(self, entity_id: str) -> EntityT | None:
+    async def get_by_id(self, entity_id: str) -> EntityT | None:
         """Return one entity by public id, or None when not found."""
         raise NotImplementedError
 
     @abstractmethod
-    def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
+    async def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
         """Return one entity matching a primitive equality condition."""
         raise NotImplementedError
 
     @abstractmethod
-    def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
+    async def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         """Return entities in deterministic backend order."""
         raise NotImplementedError
 
     @abstractmethod
-    def update(self, entity_id: str, changes: Mapping[str, Any]) -> EntityT | None:
+    async def update(self, entity_id: str, changes: Mapping[str, Any]) -> EntityT | None:
         """Patch primitive field values and return the updated entity."""
         raise NotImplementedError
 
     @abstractmethod
-    def delete(self, entity_id: str) -> bool:
+    async def delete(self, entity_id: str) -> bool:
         """Delete one entity by public id and return whether anything changed."""
         raise NotImplementedError
 
     @abstractmethod
-    def close(self) -> None:
+    async def close(self) -> None:
         """Release backend resources held by this repository."""
         raise NotImplementedError
 
