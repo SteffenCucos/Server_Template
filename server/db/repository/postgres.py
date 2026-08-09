@@ -83,13 +83,14 @@ class PostgresRepository(Repository[EntityT]):
             "SELECT id, {data_column} "
             "FROM {table} "
             "ORDER BY id ASC "
-            "LIMIT %s OFFSET %s"
+            "LIMIT {limit} OFFSET %s"
         ).format(
             table=sql.Identifier(self._table),
             data_column=sql.Identifier(self._data_column),
+            limit=sql.Literal(limit) if limit > 0 else sql.SQL("ALL"),
         )
         async with connection.cursor() as cursor:
-            await cursor.execute(query, (limit if limit > 0 else "ALL", offset))
+            await cursor.execute(query, (offset,))
             rows = await cursor.fetchall()
         return [self._row_to_entity(row) for row in rows]
 
