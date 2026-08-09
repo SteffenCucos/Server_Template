@@ -22,4 +22,7 @@ class HealthService:
             return False
         finally:
             if repository is not None:
-                await repository.close()
+                try:
+                    await repository.close()
+                except Exception as err:
+                    logger.error(err)

@@ -8,7 +8,6 @@ from api.exceptions import UnauthorizedException
 from api.router import Router
 from api.v1 import base_route
 from auth.dependencies import get_session_service
-from auth.session.session import Session
 from auth.session.session_service import SessionService
 from fastapi import Depends
 from fastapi.responses import HTMLResponse

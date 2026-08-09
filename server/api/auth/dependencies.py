@@ -5,9 +5,9 @@ from collections.abc import AsyncIterator
 from typing import Annotated
 
 from api.exceptions import ForbiddenException, UnauthorizedException
-from auth.authorization_service import AuthorizationService
-from auth.dependencies import get_authz_service, get_session_service
-from auth.session.session_service import SessionService
+from server.auth.authorization_service import AuthorizationService
+from server.auth.dependencies import get_authz_service, get_session_service
+from server.auth.session.session_service import SessionService
 from fastapi import Depends, Request
 from models.request_context import RequestContext
 from users.dependencies import get_user_service
@@ -32,16 +32,13 @@ async def get_request_context(
     request_context.session_id = session_id
 
     try:
-        if session_id:
-            session = await session_service.get_session(session_id)
-            if session:
-                request_context.session = session
-                request_context.current_user_id = session.user_id
-                request_context.session_expired = session.is_expired()
+        if session := await session_service.get_session(session_id):
+            request_context.session = session
+            request_context.current_user_id = session.user_id
+            request_context.session_expired = session.is_expired()
 
-                user = await user_service.get_user(session.user_id)
-                if user:
-                    request_context.current_user = user
+            if user := await user_service.get_user(session.user_id):
+                request_context.current_user = user
 
         request.state.request_context = request_context
         yield request_context
