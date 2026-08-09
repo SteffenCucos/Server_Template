@@ -3,7 +3,9 @@ from __future__ import annotations
 import importlib
 import os
 import sys
+from collections.abc import Iterator
 from pathlib import Path
+from unittest.mock import create_autospec
 from uuid import uuid4
 
 import pytest
@@ -15,14 +17,14 @@ SERVER_ROOT = APP_ROOT / "server"
 
 
 def _clear_scaffold_modules() -> None:
-    prefixes = ("api", "auth", "config", "db", "main", "models", "service")
+    prefixes = ("api", "auth", "config", "db", "main", "models", "service", "users")
     for module_name in list(sys.modules):
         if any(module_name == prefix or module_name.startswith(prefix + ".") for prefix in prefixes):
             sys.modules.pop(module_name, None)
 
 
 @pytest.fixture()
-def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     assert APP_ROOT.exists(), f"scaffold app does not exist: {APP_ROOT}"
     assert SERVER_ROOT.exists(), f"scaffold server package does not exist: {SERVER_ROOT}"
 
@@ -32,7 +34,8 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     sys.path.insert(0, str(APP_ROOT))
     sys.path.insert(0, str(SERVER_ROOT))
     main = importlib.import_module("main")
-    return TestClient(main.app)
+    with TestClient(main.app) as test_client:
+        yield test_client
 
 
 def _unique_user_payload() -> dict[str, str]:
@@ -50,6 +53,40 @@ def _create_user(client: TestClient, payload: dict[str, str]) -> str:
     body = response.json()
     assert body
     return body["_id"] if isinstance(body, dict) else body
+
+
+def _login(client: TestClient, payload: dict[str, str]) -> str:
+    response = client.post(
+        "/api/v1/sessions/login",
+        json={"user_name": payload["user_name"], "password": payload["password"]},
+    )
+    assert response.status_code == 200, response.text
+    session_id = response.json()
+    assert isinstance(session_id, str)
+    assert session_id
+    client.cookies.set("session_id", session_id)
+    return session_id
+
+
+def _allow_all_permissions(client: TestClient):
+    auth_dependencies = importlib.import_module("auth.dependencies")
+    authorization_module = importlib.import_module("auth.authorization_service")
+    authorization_service = create_autospec(
+        authorization_module.AuthorizationService,
+        instance=True,
+    )
+    authorization_service.user_has_access.return_value = True
+    client.app.dependency_overrides[auth_dependencies.get_authz_service] = (
+        lambda: authorization_service
+    )
+    return authorization_service
+
+
+def test_health_reports_running_database(client: TestClient) -> None:
+    response = client.get("/api/v1/health")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"running": True, "database": True}
 
 
 def test_create_and_list_users(client: TestClient) -> None:
@@ -83,13 +120,7 @@ def test_login_creates_session_and_session_listing_shows_user(client: TestClient
     payload = _unique_user_payload()
     _create_user(client, payload)
 
-    login_response = client.post(
-        "/api/v1/sessions/login",
-        json={"user_name": payload["user_name"], "password": payload["password"]},
-    )
-    assert login_response.status_code == 200, login_response.text
-    session_id = login_response.json()
-    assert isinstance(session_id, str)
+    session_id = _login(client, payload)
     assert session_id
 
     sessions_response = client.get("/api/v1/sessions")
@@ -107,3 +138,88 @@ def test_login_rejects_bad_password(client: TestClient) -> None:
     )
 
     assert response.status_code == 401, response.text
+
+
+def test_protected_route_requires_authentication(client: TestClient) -> None:
+    payload = _unique_user_payload()
+    user_id = _create_user(client, payload)
+
+    response = client.get(f"/api/v1/users/{user_id}")
+
+    assert response.status_code == 401, response.text
+
+
+def test_protected_route_rejects_missing_permission(client: TestClient) -> None:
+    payload = _unique_user_payload()
+    user_id = _create_user(client, payload)
+    _login(client, payload)
+
+    response = client.get(f"/api/v1/users/{user_id}")
+
+    assert response.status_code == 403, response.text
+
+
+def test_authenticated_logout_ends_session(client: TestClient) -> None:
+    unauthenticated_response = client.get("/api/v1/sessions/logout")
+    assert unauthenticated_response.status_code == 401, unauthenticated_response.text
+
+    payload = _unique_user_payload()
+    _create_user(client, payload)
+    _login(client, payload)
+
+    logout_response = client.get("/api/v1/sessions/logout")
+    assert logout_response.status_code == 200, logout_response.text
+
+    second_logout_response = client.get("/api/v1/sessions/logout")
+    assert second_logout_response.status_code == 401, second_logout_response.text
+
+
+def test_update_user(client: TestClient) -> None:
+    payload = _unique_user_payload()
+    user_id = _create_user(client, payload)
+    _login(client, payload)
+    authorization_service = _allow_all_permissions(client)
+    updated_email = f"updated_{uuid4().hex}@example.com"
+
+    response = client.patch(
+        f"/api/v1/users/{user_id}",
+        json={"email": updated_email},
+    )
+
+    assert response.status_code == 200, response.text
+    updated_user = response.json()
+    assert updated_user["_id"] == user_id
+    assert updated_user["email"] == updated_email
+
+    users_response = client.get("/api/v1/users")
+    assert users_response.status_code == 200, users_response.text
+    assert any(
+        user["_id"] == user_id and user["email"] == updated_email
+        for user in users_response.json()
+    )
+
+    permission = authorization_service.user_has_access.await_args.args[1]
+    assert permission == f"update/users/{user_id}"
+
+
+def test_delete_user_and_sessions(client: TestClient) -> None:
+    payload = _unique_user_payload()
+    user_id = _create_user(client, payload)
+    _login(client, payload)
+    authorization_service = _allow_all_permissions(client)
+
+    response = client.delete(f"/api/v1/users/{user_id}")
+
+    assert response.status_code == 200, response.text
+    deleted_user = response.json()
+    assert deleted_user["_id"] == user_id
+
+    users_response = client.get("/api/v1/users")
+    assert users_response.status_code == 200, users_response.text
+    assert all(user["_id"] != user_id for user in users_response.json())
+
+    permission = authorization_service.user_has_access.await_args.args[1]
+    assert permission == f"delete/users/{user_id}"
+
+    protected_response = client.get(f"/api/v1/users/{user_id}")
+    assert protected_response.status_code == 401, protected_response.text
