@@ -10,7 +10,7 @@ from auth.session.session_service import SessionService
 from fastapi import Depends
 from users.dependencies import get_user_service
 from users.user import User
-from users.user_service import CreateUserRequest, UserService
+from users.user_service import CreateUserRequest, UpdateUserRequest, UserService
 
 logger = logging.getLogger()
 
@@ -51,6 +51,20 @@ async def get_user(
         raise NotFoundException(f"User with id:{user_id} does not exist")
 
     return user
+
+
+@router.patch("/{user_id}")
+@check_permission("update/users/{user_id}")
+async def update_user(
+    user_id: str,
+    user_request: UpdateUserRequest,
+    user_service: Annotated[UserService, Depends(get_user_service)],
+) -> User:
+    user = await user_service.get_user(user_id)
+    if not user:
+        raise NotFoundException(f"User with id:{user_id} does not exist")
+
+    return await user_service.update_user(user, user_request)
 
 
 @router.delete("/{user_id}")
