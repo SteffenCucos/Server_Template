@@ -5,6 +5,7 @@ from api.exceptions import UnprocessableEntityException
 from models.base.id import Id
 from users.user import User
 from users.user_dao import UserDAO
+from auth.password.password_service import PasswordService
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,9 @@ class UpdateUserRequest:
 
 
 class UserService:
-    def __init__(self, user_dao: UserDAO):
+    def __init__(self, user_dao: UserDAO, password_service: PasswordService):
         self.user_dao = user_dao
+        self.password_service = password_service
 
     async def create_user(self, user_request: CreateUserRequest) -> User:
         if await self.user_dao.get_by_name(user_request.user_name):
@@ -34,9 +36,12 @@ class UserService:
         if await self.user_dao.get_by_email(user_request.email):
             raise UnprocessableEntityException("Email is already in use.")
 
+        if len(user_request.password) < 12 or not user_request.password.strip():
+            raise UnprocessableEntityException("Password must be at least 12 characters")
+
         user = User(
             user_name=user_request.user_name,
-            password=user_request.password,
+            password_hash=self.password_service.hash_password(user_request.password),
             email=user_request.email,
         )
         return await self.user_dao.create(user)
@@ -65,13 +70,19 @@ class UserService:
                 raise UnprocessableEntityException("Email is already in use.")
             changes["email"] = user_request.email
 
-        if user_request.password is not None and user_request.password != user.password:
-            changes["password"] = user_request.password
+        if user_request.password is not None:
+            if len(user_request.password) < 12 or not user_request.password.strip():
+                raise UnprocessableEntityException("Password must be at least 12 characters")
+            changes["password_hash"] = self.password_service.hash_password(user_request.password)
 
         if not changes:
             return user
 
         updated_user = await self.user_dao.update(user._id, changes)
+        return updated_user or user
+
+    async def update_password_hash(self, user: User, password_hash: str) -> User:
+        updated_user = await self.user_dao.update_password_hash(user._id, password_hash)
         return updated_user or user
 
     async def delete_user(self, user: User) -> bool:

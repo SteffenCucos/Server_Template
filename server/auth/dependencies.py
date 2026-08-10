@@ -17,6 +17,11 @@ from .session.session import Session
 from .session.session_dao import SessionDAO
 from .session.session_service import SessionService
 from .authorization_service import AuthorizationService
+from .authentication_service import AuthenticationService
+from .password.dependencies import get_password_service
+from .password.password_service import PasswordService
+from users.dependencies import get_user_service
+from users.user_service import UserService
 
 
 get_perm_repository = repository_dependency(
@@ -76,6 +81,13 @@ def get_session_dao(
 
 def get_session_service(session_dao: Annotated[SessionDAO, Depends(get_session_dao)]) -> SessionService:
     return SessionService(session_dao)
+
+def get_authentication_service(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    password_service: Annotated[PasswordService, Depends(get_password_service)],
+    session_service: Annotated[SessionService, Depends(get_session_service)],
+) -> AuthenticationService:
+    return AuthenticationService(user_service, password_service, session_service)
 
 def get_authz_service(
     user_role_dao: Annotated[UserRoleDAO, Depends(get_user_role_dao)],

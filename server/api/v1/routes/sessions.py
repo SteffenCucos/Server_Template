@@ -7,7 +7,8 @@ from api.decorators.authenticated import authenticated
 from api.exceptions import UnauthorizedException
 from api.router import Router
 from api.v1 import base_route
-from auth.dependencies import get_session_service
+from auth.dependencies import get_authentication_service, get_session_service
+from auth.authentication_service import AuthenticationService
 from auth.session.session_service import SessionService
 from fastapi import Depends
 from fastapi.responses import HTMLResponse
@@ -59,15 +60,9 @@ class LoginBody:
 @router.post("/login")
 async def login(
     credentials: LoginBody,
-    user_service: Annotated[UserService, Depends(get_user_service)],
-    session_service: Annotated[SessionService, Depends(get_session_service)],
+    authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)],
 ):
-    user = await user_service.get_user_by_name(credentials.user_name)
-
-    if not user or user.password != credentials.password:
-        raise UnauthorizedException("Incorrect user name or password")
-
-    session = await session_service.create_session(user)
+    session = await authentication_service.authenticate(credentials.user_name, credentials.password)
     return session._id
 
 

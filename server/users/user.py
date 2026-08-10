@@ -6,6 +6,6 @@ from models.base.entity import Entity
 @dataclass
 class User(Entity()):
     user_name: str
-    password: str
+    password_hash: str
     email: str
     email_verified: bool = False

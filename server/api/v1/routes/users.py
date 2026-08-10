@@ -1,11 +1,15 @@
 import logging
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Annotated
 
 from api.decorators.check_permissions import check_permission
+from api.auth.dependencies import require_current_user
 from api.exceptions import NotFoundException
 from api.router import Router
 from api.v1 import base_route
-from auth.dependencies import get_session_service
+from auth.dependencies import get_authz_service, get_session_service
+from auth.authorization_service import AuthorizationService
 from auth.session.session_service import SessionService
 from fastapi import Depends
 from users.dependencies import get_user_service
@@ -17,6 +21,27 @@ logger = logging.getLogger()
 router = Router(
     prefix=base_route + "/users",
 )
+
+
+@dataclass
+class UserResponse:
+    _id: str
+    _created_date: datetime
+    _updated_date: datetime
+    user_name: str
+    email: str
+    email_verified: bool
+
+
+def _to_user_response(user: User) -> UserResponse:
+    return UserResponse(
+        _id=str(user._id),
+        _created_date=user._created_date,
+        _updated_date=user._updated_date,
+        user_name=user.user_name,
+        email=user.email,
+        email_verified=user.email_verified,
+    )
 
 
 @router.post("")
@@ -31,13 +56,22 @@ async def create_user(
 @router.get("")
 async def get_all_users(
     user_service: Annotated[UserService, Depends(get_user_service)],
-) -> list[User]:
+    current_user: Annotated[User, Depends(require_current_user)],
+    authorization_service: Annotated[
+        AuthorizationService,
+        Depends(get_authz_service),
+    ],
+) -> list[UserResponse]:
     all_users = await user_service.get_all_users()
 
     # Filter out all users the calling user doesn't have permission to see
-    filtered = all_users
+    filtered = []
+    for user in all_users:
+        permission = f"read/users/{user._id}"
+        if await authorization_service.user_has_access(current_user._id, permission):
+            filtered.append(user)
 
-    return filtered
+    return [_to_user_response(user) for user in filtered]
 
 
 @router.get("/{user_id}")
@@ -45,12 +79,12 @@ async def get_all_users(
 async def get_user(
     user_id: str,
     user_service: Annotated[UserService, Depends(get_user_service)],
-) -> User:
+) -> UserResponse:
     user = await user_service.get_user(user_id)
     if not user:
         raise NotFoundException(f"User with id:{user_id} does not exist")
 
-    return user
+    return _to_user_response(user)
 
 
 @router.patch("/{user_id}")
@@ -59,12 +93,13 @@ async def update_user(
     user_id: str,
     user_request: UpdateUserRequest,
     user_service: Annotated[UserService, Depends(get_user_service)],
-) -> User:
+) -> UserResponse:
     user = await user_service.get_user(user_id)
     if not user:
         raise NotFoundException(f"User with id:{user_id} does not exist")
 
-    return await user_service.update_user(user, user_request)
+    updated_user = await user_service.update_user(user, user_request)
+    return _to_user_response(updated_user)
 
 
 @router.delete("/{user_id}")
@@ -73,7 +108,7 @@ async def delete_user(
     user_id: str,
     user_service: Annotated[UserService, Depends(get_user_service)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
-) -> User:
+) -> UserResponse:
     user = await user_service.get_user(user_id)
     if not user:
         raise NotFoundException(f"User with id:{user_id} does not exist")
@@ -82,4 +117,4 @@ async def delete_user(
     await session_service.end_sessions_for_user(user_id)
 
     await user_service.delete_user(user)
-    return user
+    return _to_user_response(user)

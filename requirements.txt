@@ -8,3 +8,4 @@ requests # httpm
 pserialization # Serialization library
 pytest # testing
 httpx # FastAPI test client
+argon2-cffi # Argon2id password hashing

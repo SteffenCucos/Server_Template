@@ -13,6 +13,7 @@ dependencies = [
     "uvicorn",
     "requests",
     "pserialization",
+    "argon2-cffi",
 ]
 
 [project.optional-dependencies]
@@ -20,7 +21,7 @@ mongo = ["pymongo>=4.13", "pymongo_inmemory"]
 postgres = ["psycopg[binary]"]
 sqlite = ["aiosqlite"]
 db = ["pymongo>=4.13", "pymongo_inmemory", "psycopg[binary]", "aiosqlite"]
-test = ["pytest", "httpx", "pymongo>=4.13", "pymongo_inmemory", "aiosqlite"]
+test = ["pytest", "httpx", "argon2-cffi", "pymongo>=4.13", "pymongo_inmemory", "aiosqlite"]
 
 [project.scripts]
 server-template = "server_template.cli:main"

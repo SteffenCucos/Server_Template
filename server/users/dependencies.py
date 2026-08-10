@@ -7,6 +7,8 @@ from db.dependencies import repository_dependency
 from db.pserialize_entity_serializer import PSerializeEntitySerializer
 from db.repository.repository import Repository
 from fastapi import Depends
+from auth.password.dependencies import get_password_service
+from auth.password.password_service import PasswordService
 
 from .user import User
 from .user_dao import UserDAO
@@ -23,5 +25,8 @@ def get_user_dao(
 ) -> UserDAO:
     return UserDAO(repository)
 
-def get_user_service(user_dao: Annotated[UserDAO, Depends(get_user_dao)]) -> UserService:
-    return UserService(user_dao)
+def get_user_service(
+    user_dao: Annotated[UserDAO, Depends(get_user_dao)],
+    password_service: Annotated[PasswordService, Depends(get_password_service)],
+) -> UserService:
+    return UserService(user_dao, password_service)

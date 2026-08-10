@@ -16,6 +16,7 @@ Use this repository as a starting point for small API services that need a clean
 - Entity DAOs that wrap repositories directly and keep shared entity lifecycle rules in one place.
 - FastAPI-native dependency providers for repositories, DAOs, and services.
 - Route authentication and permission annotations enforced through FastAPI dependency injection.
+- User passwords are hashed with Argon2id through an injected password service and are excluded from API responses.
 
 ## Scaffold a new app
 
