@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock
 
 from api.v1.routes import users
-from auth.dependencies import get_authz_service
+from auth.dependencies import get_authorization_service
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from users.dependencies import get_user_service
@@ -26,7 +26,7 @@ def test_get_all_users_filters_by_read_access() -> None:
     )
 
     app.dependency_overrides[get_user_service] = lambda: user_service
-    app.dependency_overrides[get_authz_service] = lambda: authorization_service
+    app.dependency_overrides[get_authorization_service] = lambda: authorization_service
     app.dependency_overrides[users.require_current_user] = lambda: requester
 
     response = TestClient(app).get("/api/v1/users")

@@ -8,7 +8,7 @@ from api.auth.dependencies import require_current_user
 from api.exceptions import NotFoundException
 from api.router import Router
 from api.v1 import base_route
-from auth.dependencies import get_authz_service, get_session_service
+from auth.dependencies import get_authorization_service, get_session_service
 from auth.authorization_service import AuthorizationService
 from auth.session.session_service import SessionService
 from fastapi import Depends
@@ -59,7 +59,7 @@ async def get_all_users(
     current_user: Annotated[User, Depends(require_current_user)],
     authorization_service: Annotated[
         AuthorizationService,
-        Depends(get_authz_service),
+        Depends(get_authorization_service),
     ],
 ) -> list[UserResponse]:
     all_users = await user_service.get_all_users()

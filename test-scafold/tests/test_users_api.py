@@ -76,7 +76,7 @@ def _allow_all_permissions(client: TestClient):
         instance=True,
     )
     authorization_service.user_has_access.return_value = True
-    client.app.dependency_overrides[auth_dependencies.get_authz_service] = (
+    client.app.dependency_overrides[auth_dependencies.get_authorization_service] = (
         lambda: authorization_service
     )
     return authorization_service

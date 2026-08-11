@@ -6,7 +6,7 @@ from typing import Annotated
 
 from api.exceptions import ForbiddenException, UnauthorizedException
 from auth.authorization_service import AuthorizationService
-from auth.dependencies import get_authz_service, get_session_service
+from auth.dependencies import get_authorization_service, get_session_service
 from auth.session.session_service import SessionService
 from fastapi import Depends, Request
 from models.request_context import RequestContext
@@ -77,7 +77,7 @@ class RequirePermission:
         user: Annotated[User, Depends(require_current_user)],
         authorization_service: Annotated[
             AuthorizationService,
-            Depends(get_authz_service),
+            Depends(get_authorization_service),
         ],
     ) -> None:
         permission = self._resolve_permission(

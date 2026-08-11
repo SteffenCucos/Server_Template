@@ -8,7 +8,7 @@ from api.decorators.authenticated import authenticated
 from api.decorators.check_permissions import check_permission
 from api.router import Router
 from auth.authorization_service import AuthorizationService
-from auth.dependencies import get_authz_service
+from auth.dependencies import get_authorization_service
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.testclient import TestClient
@@ -120,6 +120,6 @@ def _build_client(
     )
 
     app.dependency_overrides[get_request_context] = lambda: request_context
-    app.dependency_overrides[get_authz_service] = lambda: authorization_service
+    app.dependency_overrides[get_authorization_service] = lambda: authorization_service
 
     return app, TestClient(app), authorization_service

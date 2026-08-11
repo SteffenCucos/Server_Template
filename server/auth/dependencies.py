@@ -29,20 +29,24 @@ get_perm_repository = repository_dependency(
     serializer=PSerializeEntitySerializer(PermModel),
 )
 
+
 get_role_repository = repository_dependency(
     resource_name="roles",
     serializer=PSerializeEntitySerializer(Role),
 )
+
 
 get_user_role_repository = repository_dependency(
     resource_name="user_roles",
     serializer=PSerializeEntitySerializer(UserRole),
 )
 
+
 get_role_perm_repository = repository_dependency(
     resource_name="role_perms",
     serializer=PSerializeEntitySerializer(RolePermission),
 )
+
 
 get_session_repository = repository_dependency(
     resource_name="sessions",
@@ -79,8 +83,10 @@ def get_session_dao(
 ) -> SessionDAO:
     return SessionDAO(repository)
 
+
 def get_session_service(session_dao: Annotated[SessionDAO, Depends(get_session_dao)]) -> SessionService:
     return SessionService(session_dao)
+
 
 def get_authentication_service(
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -89,7 +95,8 @@ def get_authentication_service(
 ) -> AuthenticationService:
     return AuthenticationService(user_service, password_service, session_service)
 
-def get_authz_service(
+
+def get_authorization_service(
     user_role_dao: Annotated[UserRoleDAO, Depends(get_user_role_dao)],
     role_perm_dao: Annotated[RolePermDAO, Depends(get_role_perm_dao)],
     perm_dao: Annotated[PermDAO, Depends(get_perm_dao)],
