@@ -1,6 +1,6 @@
 """Permission annotation wired into FastAPI dependency injection."""
 
-from api.auth.route import EndpointDecorator
+from api.auth.endpoint_types import EndpointDecorator
 from api.auth.route_permissions import mark_permission_required
 
 

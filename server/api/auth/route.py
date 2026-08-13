@@ -2,16 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, Protocol, TypeVar
+from typing import Any
 
-
-EndpointT = TypeVar("EndpointT", bound=Callable[..., object])
-
-
-class EndpointDecorator(Protocol):
-    def __call__(self, endpoint: EndpointT, /) -> EndpointT:
-        ...
+from .endpoint_types import EndpointDecorator, EndpointT
 
 from fastapi import Depends
 from fastapi.routing import APIRoute
