@@ -315,3 +315,13 @@ py -3 -m venv .venv
 ```
 
 If you prefer not to activate the environment, you can run the venv Python/pip directly from `.venv\Scripts/`.
+
+### Type and lint checks
+
+Install the development quality tools with the project and run the same checks used in CI:
+
+```powershell
+python -m pip install -e ".[quality]"
+python -m mypy
+python -m ruff check server server_template
+```

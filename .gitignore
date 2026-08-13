@@ -6,3 +6,6 @@ __pycache__
 config.json
 test-scafold/app/
 .venv/
+.mypy_cache/
+.pytest_cache/
+server_template.egg-info/
