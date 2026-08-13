@@ -7,7 +7,7 @@ from models.base.id import Id
 
 
 class UserDAO(EntityDAO[User]):
-    def __init__(self, repository: Repository[User]):
+    def __init__(self, repository: Repository[User]) -> None:
         super().__init__(repository)
 
     async def get_by_name(self, user_name: str) -> User | None:

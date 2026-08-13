@@ -18,6 +18,9 @@ class AuthenticationService:
 
     async def authenticate(self, user_name: str, password: str) -> Session:
         user = await self.user_service.get_user_by_name(user_name)
+        if not user:
+            raise UnauthorizedException("Incorrect user name or password")
+        
         valid = bool(user) and self.password_service.verify_password(
             user.password_hash if user else "", password
         )

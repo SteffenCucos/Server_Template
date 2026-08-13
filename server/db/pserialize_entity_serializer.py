@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from models.base.id import Id
 
@@ -31,7 +31,7 @@ class PSerializeEntitySerializer(EntitySerializer[EntityT]):
         record = self.serializer.serialize(entity)
         if hasattr(entity, "_id") and "_id" not in record:
             record["_id"] = str(getattr(entity, "_id"))
-        return record
+        return cast(Record, record)
 
     def from_record(self, record: Mapping[str, Any]) -> EntityT:
         record_dict = dict(record)
@@ -51,7 +51,7 @@ class PSerializeEntitySerializer(EntitySerializer[EntityT]):
             elif key not in self.constructor_fields:
                 setattr(entity, key, value)
 
-        return entity
+        return cast(EntityT, entity)
 
 
 def _constructor_fields(class_type: type[Any]) -> set[str]:

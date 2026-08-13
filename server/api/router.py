@@ -1,10 +1,12 @@
+from collections.abc import Callable
 import logging
 from functools import wraps
 from inspect import iscoroutinefunction, signature
+from typing import Awaitable
 
 from api.auth.route import AuthzRoute
 from db.serializing_middleware import get_application_serializer
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 
 serializer = get_application_serializer()
@@ -23,7 +25,7 @@ class Router(APIRouter):
     converted into FastAPI dependencies during route registration.
     '''
 
-    def __init__(self, *positional, **named):
+    def __init__(self, *positional, **named) -> None:
         named.setdefault("route_class", AuthzRoute)
         logger.info(f"Initialized router: {named.get('prefix', '')}")
         super().__init__(*positional, **named)
@@ -59,7 +61,7 @@ class Router(APIRouter):
         return patch_decorator
 
     @staticmethod
-    def get_serialize_wrapper(func):
+    def get_serialize_wrapper(func: Callable[..., Response] | Awaitable[Response]) -> Callable[..., Response] | Awaitable[Response]:
         # Preserve the endpoint execution model. FastAPI runs synchronous route
         # handlers in its thread pool, while async handlers must be awaited on
         # the event loop before their result can be serialized.
@@ -68,7 +70,7 @@ class Router(APIRouter):
                 func,
                 assigned=("__module__", "__name__", "__qualname__", "__doc__"),
             )
-            async def json_serialize(*positional, **named):
+            async def json_serialize(*positional, **named) -> Response:
                 result = await func(*positional, **named)
                 return Router._serialize_result(result)
         else:
@@ -76,7 +78,7 @@ class Router(APIRouter):
                 func,
                 assigned=("__module__", "__name__", "__qualname__", "__doc__"),
             )
-            def json_serialize(*positional, **named):
+            def json_serialize(*positional, **named) -> Response:
                 result = func(*positional, **named)
                 return Router._serialize_result(result)
 
@@ -84,7 +86,7 @@ class Router(APIRouter):
         return json_serialize
 
     @staticmethod
-    def _serialize_result(result):
+    def _serialize_result(result: Response) -> Response:
         if isinstance(result, HTMLResponse):
             return result
         return JSONResponse(content=serializer.serialize(result))

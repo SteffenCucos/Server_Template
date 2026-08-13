@@ -15,7 +15,7 @@ class AuthorizationService:
         role_perm_dao: RolePermDAO,
         perm_dao: PermDAO,
         tree_store: TreeStore | None = None,
-    ):
+    ) -> None:
         self.user_role_dao = user_role_dao
         self.role_perm_dao = role_perm_dao
         self.perm_dao = perm_dao
@@ -37,7 +37,7 @@ class AuthorizationService:
             ]
         return self.tree_store.role_ids_by_user_id[key]
 
-    async def _tree_for_role(self, role_id: Id | str):
+    async def _tree_for_role(self, role_id: Id | str) -> PermissionTree:
         key = str(role_id)
         if key not in self.tree_store.role_tree_by_role_id:
             self.tree_store.role_tree_by_role_id[key] = await self._build_tree_for_role(
@@ -45,7 +45,7 @@ class AuthorizationService:
             )
         return self.tree_store.role_tree_by_role_id[key]
 
-    async def _build_tree_for_role(self, role_id: Id | str):
+    async def _build_tree_for_role(self, role_id: Id | str) -> PermissionTree:
         role_tree = _TREE_CLASS()
         for role_perm in await self.role_perm_dao.list_for_role(role_id):
             perm = await self.perm_dao.get_by_id(role_perm.permission_id)

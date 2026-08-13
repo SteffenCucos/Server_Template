@@ -1,7 +1,17 @@
-"""Auth-aware FastAPI route class."""
+"""Auth-aware FastAPI route class and endpoint typing primitives."""
+
+from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Protocol, TypeVar
+
+
+EndpointT = TypeVar("EndpointT", bound=Callable[..., object])
+
+
+class EndpointDecorator(Protocol):
+    def __call__(self, endpoint: EndpointT, /) -> EndpointT:
+        ...
 
 from fastapi import Depends
 from fastapi.routing import APIRoute
@@ -13,7 +23,7 @@ from .route_permissions import get_auth_required, get_permission_requirement
 class AuthzRoute(APIRoute):
     """Attach authorization dependencies based on endpoint metadata."""
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         endpoint = self._get_endpoint(args, kwargs)
         dependencies = list(kwargs.pop("dependencies", None) or ())
 
@@ -30,7 +40,7 @@ class AuthzRoute(APIRoute):
     def _get_endpoint(
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
-    ) -> Callable[..., object]:
+    ) -> EndpointT:
         endpoint = kwargs.get("endpoint")
         if endpoint is None and len(args) > 1:
             endpoint = args[1]

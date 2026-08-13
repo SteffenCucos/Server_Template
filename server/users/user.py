@@ -4,7 +4,7 @@ from models.base.entity import Entity
 
 
 @dataclass
-class User(Entity()):
+class User(Entity()):  # type: ignore[misc]
     user_name: str
     password_hash: str
     email: str

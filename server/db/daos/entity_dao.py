@@ -16,7 +16,7 @@ TEntity = TypeVar("TEntity", bound=IdEntity)
 class EntityDAO(Generic[TEntity]):
     """Repository-facing DAO for DB-backed entities."""
 
-    def __init__(self, repository: Repository[TEntity]):
+    def __init__(self, repository: Repository[TEntity]) -> None:
         self.repository = repository
         self.serializer = get_application_serializer()
 

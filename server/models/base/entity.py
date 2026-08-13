@@ -3,20 +3,22 @@ from datetime import datetime as Datetime
 
 from .id import Id, create_id
 
+
 class IdEntity:
     _id: Id
     _created_date: Datetime
     _updated_date: Datetime
 
-    def set_created_date(self):
+    def set_created_date(self) -> None:
         self._created_date = Datetime.now()
 
-    def set_updated_date(self):
+    def set_updated_date(self) -> None:
         self._updated_date = Datetime.now()
 
-def Entity(_id_source: str = None):
+
+def Entity(_id_source: str | None = None) -> type[IdEntity]:
     class WiredIdEntity(IdEntity):
-        def __post_init__(self):
+        def __post_init__(self) -> None:
             if _id_source:
                 self._id = Id(str(getattr(self, _id_source)))
             else:

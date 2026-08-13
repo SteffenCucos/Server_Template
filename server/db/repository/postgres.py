@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
-from psycopg import sql
+from psycopg import AsyncConnection, sql
+from psycopg.rows import TupleRow
 
 from .repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
@@ -30,7 +31,7 @@ class PostgresRepository(Repository[EntityT]):
         self._id_field = id_field
         self._data_column = data_column
         self._ensure_table_on_connect = ensure_table
-        self._connection = None
+        self._connection: AsyncConnection[TupleRow] | None = None
         self._connection_lock = asyncio.Lock()
 
     async def create(self, entity: EntityT) -> EntityT:
@@ -139,7 +140,7 @@ class PostgresRepository(Repository[EntityT]):
             await self._connection.close()
             self._connection = None
 
-    async def _get_connection(self):
+    async def _get_connection(self) -> AsyncConnection[TupleRow]:
         if self._connection is not None:
             return self._connection
 
@@ -149,10 +150,10 @@ class PostgresRepository(Repository[EntityT]):
 
                 self._connection = await psycopg.AsyncConnection.connect(self._uri)
                 if self._ensure_table_on_connect:
-                    await self._ensure_table(self._connection)
+                    await self._ensure_table()
         return self._connection
 
-    async def _ensure_table(self, connection) -> None:
+    async def _ensure_table(self) -> None:
         query = sql.SQL(
             "CREATE TABLE IF NOT EXISTS {table} ("
             "id TEXT PRIMARY KEY, "
@@ -162,11 +163,12 @@ class PostgresRepository(Repository[EntityT]):
             table=sql.Identifier(self._table),
             data_column=sql.Identifier(self._data_column),
         )
+        connection = await self._get_connection()
         async with connection.cursor() as cursor:
             await cursor.execute(query)
         await connection.commit()
 
-    async def _fetch_row(self, entity_id: str) -> tuple[str, dict[str, Any]] | None:
+    async def _fetch_row(self, entity_id: str) -> TupleRow | None:
         connection = await self._get_connection()
         query = sql.SQL("SELECT id, {data_column} FROM {table} WHERE id = %s").format(
             table=sql.Identifier(self._table),
@@ -174,7 +176,8 @@ class PostgresRepository(Repository[EntityT]):
         )
         async with connection.cursor() as cursor:
             await cursor.execute(query, (entity_id,))
-            return await cursor.fetchone()
+            result: TupleRow | None = await cursor.fetchone()
+            return result
 
     def _extract_id(self, record: Mapping[str, Any]) -> str:
         if self._id_field not in record:
@@ -184,7 +187,7 @@ class PostgresRepository(Repository[EntityT]):
     def _payload_without_id(self, record: Mapping[str, Any]) -> dict[str, Any]:
         return {key: value for key, value in record.items() if key != self._id_field}
 
-    def _row_to_entity(self, row: tuple[str, dict[str, Any]] | None) -> EntityT:
+    def _row_to_entity(self, row: TupleRow | None) -> EntityT:
         if row is None:
             raise LookupError("expected database row, got None")
 

@@ -1,12 +1,11 @@
 """Permission annotation wired into FastAPI dependency injection."""
 
-from collections.abc import Callable
-
+from api.auth.route import EndpointDecorator
 from api.auth.route_permissions import mark_permission_required
 
 
-def check_permission(permission: str | None = None) -> Callable:
+def check_permission(permission: str | None = None) -> EndpointDecorator:
     """Mark a route as requiring one permission template."""
-    if permission is None:
-        return lambda endpoint: endpoint
+    if not permission:
+        raise ValueError("A non-empty permission is required")
     return mark_permission_required(permission)

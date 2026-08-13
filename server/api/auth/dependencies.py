@@ -10,6 +10,7 @@ from auth.dependencies import get_authorization_service, get_session_service
 from auth.session.session_service import SessionService
 from fastapi import Depends, Request
 from models.request_context import RequestContext
+from models.base.id import Id
 from users.dependencies import get_user_service
 from users.user import User
 from users.user_service import UserService
@@ -28,11 +29,12 @@ async def get_request_context(
     request_context = RequestContext.set_context()
     request_context.filled = True
 
-    session_id = request.cookies.get("session_id")
+    session_id_str = request.cookies.get("session_id")        
+    session_id = Id(session_id_str) if session_id_str else None
     request_context.session_id = session_id
 
     try:
-        if session := await session_service.get_session(session_id):
+        if session_id and (session := await session_service.get_session(session_id)):
             request_context.session = session
             request_context.current_user_id = session.user_id
             request_context.session_expired = session.is_expired()
@@ -68,7 +70,7 @@ def require_current_user(
 class RequirePermission:
     """Callable dependency bound to one route's permission metadata."""
 
-    def __init__(self, requirement: PermissionRequirement):
+    def __init__(self, requirement: PermissionRequirement) -> None:
         self.requirement = requirement
 
     async def __call__(

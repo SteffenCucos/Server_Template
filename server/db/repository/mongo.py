@@ -7,6 +7,10 @@ from collections.abc import Mapping
 from threading import Lock
 from typing import Any
 
+from pymongo import AsyncMongoClient
+from pymongo.asynchronous.collection import AsyncCollection
+from pymongo_inmemory import MongoClient
+
 from .repository import EntityIdRequiredError, EntitySerializer, EntityT, Repository
 
 MEMORY_MONGO_URIS = {
@@ -36,8 +40,8 @@ class MongoRepository(Repository[EntityT]):
         self._collection_name = collection
         self._serializer = serializer
         self._id_field = id_field
-        self._client = None
-        self._collection = None
+        self._client: AsyncMongoClient[Mapping[str, Any]] | None = None
+        self._collection: AsyncCollection[Mapping[str, Any]] | None = None
 
     async def create(self, entity: EntityT) -> EntityT:
         collection = await self._get_collection()
@@ -95,7 +99,7 @@ class MongoRepository(Repository[EntityT]):
             self._client = None
             self._collection = None
 
-    async def _get_collection(self):
+    async def _get_collection(self) -> AsyncCollection[Mapping[str, Any]]:
         if self._collection is not None:
             return self._collection
 
@@ -111,7 +115,7 @@ class MongoRepository(Repository[EntityT]):
         self._collection = self._client[self._database][self._collection_name]
         return self._collection
 
-    def _to_backend_record(self, record: Mapping[str, Any]) -> dict[str, Any]:
+    def _to_backend_record(self, record: Mapping[str, Any]) -> Mapping[str, Any]:
         backend_record = dict(record)
         if "_id" in backend_record:
             backend_record["_id"] = str(backend_record["_id"])
@@ -123,7 +127,7 @@ class MongoRepository(Repository[EntityT]):
         backend_record["_id"] = str(backend_record.pop(self._id_field))
         return backend_record
 
-    def _to_backend_patch(self, changes: Mapping[str, Any]) -> dict[str, Any]:
+    def _to_backend_patch(self, changes: Mapping[str, Any]) -> Mapping[str, Any]:
         patch = dict(changes)
         if self._id_field in patch:
             patch["_id"] = str(patch.pop(self._id_field))
@@ -131,7 +135,7 @@ class MongoRepository(Repository[EntityT]):
             patch.pop("_id")
         return patch
 
-    def _to_backend_condition(self, condition: Mapping[str, Any]) -> dict[str, Any]:
+    def _to_backend_condition(self, condition: Mapping[str, Any]) -> Mapping[str, Any]:
         query = dict(condition)
         if self._id_field in query:
             query["_id"] = str(query.pop(self._id_field))
@@ -146,7 +150,7 @@ class MongoRepository(Repository[EntityT]):
         return self._serializer.from_record(public_record)
 
 
-def _get_memory_mongo_server(uri: str):
+def _get_memory_mongo_server(uri: str) -> MongoClient:
     """Start one ephemeral mongod for test-only memory URIs."""
     with _MEMORY_SERVER_LOCK:
         if uri not in _SHARED_MEMORY_SERVERS:

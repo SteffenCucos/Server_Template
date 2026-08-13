@@ -1,10 +1,10 @@
 import uuid
 
 class Id(str):
-    def __init__(self, _id: str):
+    def __init__(self, _id: str) -> None:
         self._id = _id
 
-def from_mongoId(mongoId: object):
+def from_mongoId(mongoId: object) -> None:
     pass
 
 def create_id() -> Id:

@@ -5,7 +5,7 @@ from typing import Callable
 from pserialize import Deserializer, Serializer
 
 
-def get_application_serializer():
+def get_application_serializer() -> Serializer:
     def serializer(obj: datetime, middleware: dict[type, Callable[[object], type]] = {}) -> str:
         return obj.isoformat()
 
@@ -16,7 +16,7 @@ def get_application_serializer():
     )
 
 
-def get_application_deserializer():
+def get_application_deserializer() -> Deserializer:
     def deserializer(value: str, middleware: dict[type, Callable[[object], type]] = {}) -> datetime:
         return datetime.fromisoformat(value)
         

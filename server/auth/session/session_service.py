@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class SessionService:
-    def __init__(self, dao: SessionDAO):
+    def __init__(self, dao: SessionDAO) -> None:
         self.dao = dao
 
     async def create_session(self, user: User) -> Session:

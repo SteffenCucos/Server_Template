@@ -13,7 +13,7 @@ router = Router(
 @router.get("")
 async def status(
     health_service: HealthService = Depends(HealthService),
-):
+) -> dict[str, bool]:
     return {
         "running": True,
         "database": await health_service.database_health_check(),

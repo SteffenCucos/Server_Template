@@ -71,5 +71,8 @@ async def login(
 async def logout(
     request_context: Annotated[RequestContext, Depends(get_request_context)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
-):
+) -> None:
+    if not request_context.session_id:
+        raise UnauthorizedException("No session found for logout")
+
     await session_service.end_session(request_context.session_id)
