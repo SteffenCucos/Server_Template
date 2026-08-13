@@ -8,7 +8,7 @@ from db.repository import Repository
 
 
 class RolePermDAO(EntityDAO[RolePermission]):
-    def __init__(self, repository: Repository[RolePermission]):
+    def __init__(self, repository: Repository[RolePermission]) -> None:
         super().__init__(repository)
 
     async def list_for_role(self, role_id: Id | str) -> list[RolePermission]:

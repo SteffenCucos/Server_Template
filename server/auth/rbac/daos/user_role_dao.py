@@ -8,7 +8,7 @@ from db.repository import Repository
 
 
 class UserRoleDAO(EntityDAO[UserRole]):
-    def __init__(self, repository: Repository[UserRole]):
+    def __init__(self, repository: Repository[UserRole]) -> None:
         super().__init__(repository)
 
     async def list_for_user(self, user_id: Id | str) -> list[UserRole]:

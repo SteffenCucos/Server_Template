@@ -7,7 +7,7 @@ from db.repository import Repository
 
 
 class PermDAO(EntityDAO[Permission]):
-    def __init__(self, repository: Repository[Permission]):
+    def __init__(self, repository: Repository[Permission]) -> None:
         super().__init__(repository)
 
     async def get_by_key(self, key: str) -> Permission | None:
