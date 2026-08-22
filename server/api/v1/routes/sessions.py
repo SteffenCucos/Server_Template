@@ -13,7 +13,6 @@ from auth.session.session_service import SessionService
 from fastapi import Depends
 from fastapi.responses import HTMLResponse
 from models.request_context import RequestContext
-from models.base.id import Id
 from users.dependencies import get_user_service
 from users.user_service import UserService
 
@@ -62,9 +61,9 @@ class LoginBody:
 async def login(
     credentials: LoginBody,
     authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)],
-) -> Id:
+) -> str:
     session = await authentication_service.authenticate(credentials.user_name, credentials.password)
-    return Id(session._id)
+    return str(session._id)
 
 
 @router.get("/logout")
