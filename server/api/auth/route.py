@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .endpoint_types import EndpointDecorator, EndpointT
+from .endpoint_types import EndpointT
 
 from fastapi import Depends
 from fastapi.routing import APIRoute

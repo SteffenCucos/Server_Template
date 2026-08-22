@@ -106,7 +106,7 @@ The repository contract is async:
 entity = await repo.create(entity)
 entity = await repo.get_by_id("entity-id")
 entity = await repo.find_one({"email": "user@example.com"})
-entities = await repo.list(limit=100, offset=0)
+entities = await repo.enumerate(limit=100, offset=0)
 entity = await repo.update("entity-id", {"field": "value"})
 deleted = await repo.delete("entity-id")
 await repo.close()

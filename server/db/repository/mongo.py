@@ -63,7 +63,7 @@ class MongoRepository(Repository[EntityT]):
             return None
         return self._from_backend_record(record)
 
-    async def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
+    async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         collection = await self._get_collection()
         cursor = collection.find({}).sort("_id", 1).skip(offset)
         if limit > 0:

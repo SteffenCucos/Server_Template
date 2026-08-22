@@ -9,7 +9,11 @@ from db.serializing_middleware import get_application_serializer
 from fastapi import APIRouter, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 
+from api.auth.endpoint_types import EndpointT
+
 serializer = get_application_serializer()
+
+
 
 logger = logging.getLogger()
 
@@ -61,7 +65,7 @@ class Router(APIRouter):
         return patch_decorator
 
     @staticmethod
-    def get_serialize_wrapper(func: Callable[..., Response] | Awaitable[Response]) -> Callable[..., Response] | Awaitable[Response]:
+    def get_serialize_wrapper(func: EndpointT) -> EndpointT:
         # Preserve the endpoint execution model. FastAPI runs synchronous route
         # handlers in its thread pool, while async handlers must be awaited on
         # the event loop before their result can be serialized.

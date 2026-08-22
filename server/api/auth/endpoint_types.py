@@ -1,10 +1,12 @@
 """Shared typing primitives for auth-aware endpoint decorators and routes."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Awaitable
 from typing import Protocol, TypeVar
 
+from fastapi import Response
 
-EndpointT = TypeVar("EndpointT", bound=Callable[..., object])
+
+EndpointT = TypeVar("EndpointT", bound=Callable[..., Response] | Awaitable[Response])
 
 
 class EndpointDecorator(Protocol):

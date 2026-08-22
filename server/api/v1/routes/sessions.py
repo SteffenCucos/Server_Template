@@ -13,6 +13,7 @@ from auth.session.session_service import SessionService
 from fastapi import Depends
 from fastapi.responses import HTMLResponse
 from models.request_context import RequestContext
+from models.base.id import Id
 from users.dependencies import get_user_service
 from users.user_service import UserService
 
@@ -27,7 +28,7 @@ router = Router(
 async def get_sessions(
     user_service: Annotated[UserService, Depends(get_user_service)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
-):
+) -> HTMLResponse:
     sessions = await session_service.get_all()
     session_items: list[str] = []
     for session in sessions:
@@ -61,7 +62,7 @@ class LoginBody:
 async def login(
     credentials: LoginBody,
     authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)],
-):
+) -> Id:
     session = await authentication_service.authenticate(credentials.user_name, credentials.password)
     return session._id
 

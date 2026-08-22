@@ -15,7 +15,7 @@ class HealthService:
                 resource_name="health",
                 serializer=MappingSerializer(),
             )
-            await repository.list(limit=1)
+            await repository.enumerate(limit=1)
             return True
         except Exception as err:
             logger.error(err)

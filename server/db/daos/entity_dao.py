@@ -39,11 +39,11 @@ class EntityDAO(Generic[TEntity]):
     async def find_one(self, condition: Mapping[str, Any]) -> TEntity | None:
         return await self.repository.find_one(condition)
 
-    async def list(self, *, limit: int = -1, offset: int = 0) -> list[TEntity]:
-        return await self.repository.list(limit=limit, offset=offset)
+    async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[TEntity]:
+        return await self.repository.enumerate(limit=limit, offset=offset)
 
     async def find_all(self) -> list[TEntity]:
-        return await self.list()
+        return await self.enumerate()
 
     async def update(
         self,

@@ -58,7 +58,7 @@ class Repository(ABC, Generic[EntityT]):
         raise NotImplementedError
 
     @abstractmethod
-    async def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
+    async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         """Return entities in deterministic backend order."""
         raise NotImplementedError
 
