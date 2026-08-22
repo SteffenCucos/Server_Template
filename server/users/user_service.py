@@ -53,7 +53,7 @@ class UserService:
         return await self.user_dao.get_by_name(user_name)
 
     async def get_all_users(self) -> list[User]:
-        return await self.user_dao.list()
+        return await self.user_dao.enumerate()
 
     async def update_user(self, user: User, user_request: UpdateUserRequest) -> User:
         changes: dict[str, str] = {}

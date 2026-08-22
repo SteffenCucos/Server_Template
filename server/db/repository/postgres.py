@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from psycopg import AsyncConnection, sql
 from psycopg.rows import TupleRow
@@ -64,7 +64,7 @@ class PostgresRepository(Repository[EntityT]):
 
     async def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
         if not condition:
-            entities = await self.list(limit=1)
+            entities = await self.enumerate(limit=1)
             return entities[0] if entities else None
 
         if len(condition) == 1:
@@ -72,13 +72,13 @@ class PostgresRepository(Repository[EntityT]):
             if field in {self._id_field, "_id", "id"}:
                 return await self.get_by_id(str(value))
 
-        for entity in await self.list():
+        for entity in await self.enumerate():
             record = self._serializer.to_record(entity)
             if all(str(record.get(field)) == str(value) for field, value in condition.items()):
                 return entity
         return None
 
-    async def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
+    async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         connection = await self._get_connection()
         query = sql.SQL(
             "SELECT id, {data_column} "
@@ -131,7 +131,7 @@ class PostgresRepository(Repository[EntityT]):
         )
         async with connection.cursor() as cursor:
             await cursor.execute(query, (entity_id,))
-            deleted_count = cursor.rowcount
+            deleted_count = int(cursor.rowcount or 0)
         await connection.commit()
         return deleted_count > 0
 

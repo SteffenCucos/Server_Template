@@ -27,7 +27,7 @@ router = Router(
 async def get_sessions(
     user_service: Annotated[UserService, Depends(get_user_service)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
-):
+) -> HTMLResponse:
     sessions = await session_service.get_all()
     session_items: list[str] = []
     for session in sessions:
@@ -61,9 +61,9 @@ class LoginBody:
 async def login(
     credentials: LoginBody,
     authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)],
-):
+) -> str:
     session = await authentication_service.authenticate(credentials.user_name, credentials.password)
-    return session._id
+    return str(session._id)
 
 
 @router.get("/logout")

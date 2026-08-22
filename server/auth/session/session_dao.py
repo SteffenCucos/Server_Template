@@ -14,6 +14,6 @@ class SessionDAO(EntityDAO[Session]):
     async def list_for_user(self, user_id: Id | str) -> list[Session]:
         return [
             session
-            for session in await self.list()
+            for session in await self.enumerate()
             if str(session.user_id) == str(user_id)
         ]

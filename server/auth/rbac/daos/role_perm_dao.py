@@ -13,12 +13,12 @@ class RolePermDAO(EntityDAO[RolePermission]):
 
     async def list_for_role(self, role_id: Id | str) -> list[RolePermission]:
         return [
-            item for item in await self.list() if str(item.role_id) == str(role_id)
+            item for item in await self.enumerate() if str(item.role_id) == str(role_id)
         ]
 
     async def list_for_perm(self, permission_id: Id | str) -> list[RolePermission]:
         return [
             item
-            for item in await self.list()
+            for item in await self.enumerate()
             if str(item.permission_id) == str(permission_id)
         ]
