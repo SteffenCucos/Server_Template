@@ -315,7 +315,27 @@ py -3 -m venv .venv
 ```
 
 If you prefer not to activate the environment, you can run the venv Python/pip directly from `.venv\Scripts/`.
+### Run the test suite
 
+Install the test dependencies from the repository root:
+
+```powershell
+python -m pip install -e ".[test]"
+```
+
+Then run the tests:
+
+```powershell
+python -m pytest tests -q
+```
+
+You can also limit the run to a specific test file:
+
+```powershell
+python -m pytest tests/api/test_users_api.py
+```
+
+The project is configured so pytest uses the repository's `tests` folder and adds the `server` package to `PYTHONPATH` automatically.
 ### Type and lint checks
 
 Install the development quality tools with the project and run the same checks used in CI:
