@@ -91,7 +91,8 @@ class MongoRepository(Repository[EntityT]):
     async def delete(self, entity_id: str) -> bool:
         collection = await self._get_collection()
         result = await collection.delete_one({"_id": entity_id})
-        return result.deleted_count > 0
+        deleted_count = int(result.deleted_count or 0)
+        return deleted_count > 0
 
     async def close(self) -> None:
         if self._client is not None:

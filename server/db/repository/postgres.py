@@ -131,7 +131,7 @@ class PostgresRepository(Repository[EntityT]):
         )
         async with connection.cursor() as cursor:
             await cursor.execute(query, (entity_id,))
-            deleted_count = cursor.rowcount
+            deleted_count = int(cursor.rowcount or 0)
         await connection.commit()
         return deleted_count > 0
 

@@ -120,7 +120,7 @@ class SQLiteRepository(Repository[EntityT]):
             f'DELETE FROM "{self._table}" WHERE id = ?',
             (entity_id,),
         )
-        deleted_count = cursor.rowcount
+        deleted_count = int(cursor.rowcount or 0)
         await cursor.close()
         await connection.commit()
         return deleted_count > 0
