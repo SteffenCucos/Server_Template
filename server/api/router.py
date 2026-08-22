@@ -2,7 +2,7 @@ from collections.abc import Callable
 import logging
 from functools import wraps
 from inspect import iscoroutinefunction, signature
-from typing import Awaitable
+from typing import Any, cast
 
 from api.auth.route import AuthzRoute
 from db.serializing_middleware import get_application_serializer
@@ -29,38 +29,39 @@ class Router(APIRouter):
     converted into FastAPI dependencies during route registration.
     '''
 
-    def __init__(self, *positional, **named) -> None:
+    def __init__(self, *positional: Any, **named: Any) -> None:
         named.setdefault("route_class", AuthzRoute)
         logger.info(f"Initialized router: {named.get('prefix', '')}")
         super().__init__(*positional, **named)
 
-    def get(self, endpoint: str):
-        def get_decorator(func):
-            return super(Router, self).get(endpoint)(Router.get_serialize_wrapper(func))
+    # 
+    def get(self, *args: Any, **kwargs: Any) -> Callable[[EndpointT], EndpointT]:
+        def get_decorator(func: EndpointT) -> EndpointT:
+            return super(Router, self).get(*args, **kwargs)(Router.get_serialize_wrapper(func))
 
         return get_decorator
 
-    def post(self, endpoint: str):
-        def post_decorator(func):
-            return super(Router, self).post(endpoint)(Router.get_serialize_wrapper(func))
+    def post(self, *args: Any, **kwargs: Any) -> Callable[[EndpointT], EndpointT]:
+        def post_decorator(func: EndpointT) -> EndpointT:
+            return super(Router, self).post(*args, **kwargs)(Router.get_serialize_wrapper(func))
 
         return post_decorator
 
-    def put(self, endpoint: str):
-        def put_decorator(func):
-            return super(Router, self).put(endpoint)(Router.get_serialize_wrapper(func))
+    def put(self, *args: Any, **kwargs: Any) -> Callable[[EndpointT], EndpointT]:
+        def put_decorator(func: EndpointT) -> EndpointT:
+            return super(Router, self).put(*args, **kwargs)(Router.get_serialize_wrapper(func))
 
         return put_decorator
 
-    def delete(self, endpoint: str):
-        def delete_decorator(func):
-            return super(Router, self).delete(endpoint)(Router.get_serialize_wrapper(func))
+    def delete(self, *args: Any, **kwargs: Any) -> Callable[[EndpointT], EndpointT]:
+        def delete_decorator(func: EndpointT) -> EndpointT:
+            return super(Router, self).delete(*args, **kwargs)(Router.get_serialize_wrapper(func))
 
         return delete_decorator
 
-    def patch(self, endpoint: str):
-        def patch_decorator(func):
-            return super(Router, self).patch(endpoint)(Router.get_serialize_wrapper(func))
+    def patch(self, *args: Any, **kwargs: Any) -> Callable[[EndpointT], EndpointT]:
+        def patch_decorator(func: EndpointT) -> EndpointT:
+            return super(Router, self).patch(*args, **kwargs)(Router.get_serialize_wrapper(func))
 
         return patch_decorator
 
@@ -74,7 +75,7 @@ class Router(APIRouter):
                 func,
                 assigned=("__module__", "__name__", "__qualname__", "__doc__"),
             )
-            async def json_serialize(*positional, **named) -> Response:
+            async def json_serialize(*positional: Any, **named: Any) -> Response:
                 result = await func(*positional, **named)
                 return Router._serialize_result(result)
         else:
@@ -82,12 +83,13 @@ class Router(APIRouter):
                 func,
                 assigned=("__module__", "__name__", "__qualname__", "__doc__"),
             )
-            def json_serialize(*positional, **named) -> Response:
+            def json_serialize(*positional: Any, **named: Any) -> Response:
                 result = func(*positional, **named)
                 return Router._serialize_result(result)
-
-        json_serialize.__signature__ = signature(func)
-        return json_serialize
+        
+        
+        json_serialize.__signature__ = signature(func) # type: ignore
+        return cast(EndpointT, json_serialize)
 
     @staticmethod
     def _serialize_result(result: Response) -> Response:

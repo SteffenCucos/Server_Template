@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 
-from .endpoint_types import EndpointT
-
-from fastapi import Depends
+from fastapi import Depends, Response
 from fastapi.routing import APIRoute
 
 from .dependencies import RequirePermission, require_current_user
@@ -29,27 +28,25 @@ class AuthzRoute(APIRoute):
         kwargs["dependencies"] = dependencies
         super().__init__(*args, **kwargs)
 
-    @staticmethod
     def _get_endpoint(
+        self,
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
-    ) -> EndpointT:
+    ) -> Callable[..., Response]:
         endpoint = kwargs.get("endpoint")
         if endpoint is None and len(args) > 1:
             endpoint = args[1]
         if not callable(endpoint):
             raise TypeError("AuthzRoute requires a callable endpoint")
-        return endpoint
+        return cast(Callable[..., Response], endpoint)
 
-    @staticmethod
-    def _has_permission_dependency(dependencies: list[Any]) -> bool:
+    def _has_permission_dependency(self, dependencies: list[Any]) -> bool:
         return any(
             isinstance(getattr(dependency, "dependency", None), RequirePermission)
             for dependency in dependencies
         )
 
-    @staticmethod
-    def _has_auth_dependency(dependencies: list[Any]) -> bool:
+    def _has_auth_dependency(self, dependencies: list[Any]) -> bool:
         return any(
             getattr(dependency, "dependency", None) is require_current_user
             or isinstance(getattr(dependency, "dependency", None), RequirePermission)

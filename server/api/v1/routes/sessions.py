@@ -64,7 +64,7 @@ async def login(
     authentication_service: Annotated[AuthenticationService, Depends(get_authentication_service)],
 ) -> Id:
     session = await authentication_service.authenticate(credentials.user_name, credentials.password)
-    return session._id
+    return Id(session._id)
 
 
 @router.get("/logout")

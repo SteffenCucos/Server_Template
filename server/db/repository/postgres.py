@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from psycopg import AsyncConnection, sql
 from psycopg.rows import TupleRow

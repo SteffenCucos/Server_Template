@@ -5,6 +5,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from config import config
+from api.v1.api import api_router
 
 log_config = {
     "version": 1,
@@ -37,7 +38,6 @@ logger = logging.getLogger()
 logger = logging.getLogger(__name__) 
 
 app = FastAPI()
-from api.v1.api import api_router
 
 app.include_router(api_router)
 
