@@ -96,6 +96,8 @@ def test_create_and_list_users(client: TestClient) -> None:
     assert isinstance(user_id, str)
     assert user_id
 
+    _login(client, payload)
+    _allow_all_permissions(client)
     response = client.get("/api/v1/users")
     assert response.status_code == 200, response.text
     users = response.json()
@@ -198,8 +200,11 @@ def test_update_user(client: TestClient) -> None:
         for user in users_response.json()
     )
 
-    permission = authorization_service.user_has_access.await_args.args[1]
-    assert permission == f"update/users/{user_id}"
+    permissions = [
+        call.args[1]
+        for call in authorization_service.user_has_access.await_args_list
+    ]
+    assert f"update/users/{user_id}" in permissions
 
 
 def test_delete_user_and_sessions(client: TestClient) -> None:
@@ -214,9 +219,14 @@ def test_delete_user_and_sessions(client: TestClient) -> None:
     deleted_user = response.json()
     assert deleted_user["_id"] == user_id
 
+    # Deleting the user also deletes their sessions, so the current client
+    # can no longer access protected user-list routes.
     users_response = client.get("/api/v1/users")
-    assert users_response.status_code == 200, users_response.text
-    assert all(user["_id"] != user_id for user in users_response.json())
+    assert users_response.status_code == 401, users_response.text
+
+    sessions_response = client.get("/api/v1/sessions")
+    assert sessions_response.status_code == 200, sessions_response.text
+    assert payload["user_name"] not in sessions_response.text
 
     permission = authorization_service.user_has_access.await_args.args[1]
     assert permission == f"delete/users/{user_id}"
