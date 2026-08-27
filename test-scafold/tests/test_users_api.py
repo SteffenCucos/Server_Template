@@ -3,13 +3,14 @@ from __future__ import annotations
 import importlib
 import os
 import sys
+
 from collections.abc import Iterator
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
 
+from fastapi.testclient import TestClient
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 configured_app_root = os.environ.get("TEST_SCAFOLD_APP_ROOT")
