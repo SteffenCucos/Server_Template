@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
-import pytest
-from server.db.serializing_middleware import (get_application_deserializer,
-                                              get_application_serializer)
+from server.db.serializing_middleware import (
+    get_application_deserializer,
+    get_application_serializer,
+)
 from server.models.base.entity import Entity
 
 serializer = get_application_serializer()

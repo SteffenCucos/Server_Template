@@ -1,4 +1,5 @@
 import asyncio
+
 from unittest.mock import create_autospec
 
 from auth.authorization_service import AuthorizationService
