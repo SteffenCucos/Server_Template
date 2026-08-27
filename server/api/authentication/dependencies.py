@@ -1,16 +1,18 @@
 """FastAPI dependencies that enforce route authentication and permissions."""
 
 import logging
+
 from collections.abc import AsyncIterator
 from typing import Annotated
+
+from fastapi import Depends, Request
 
 from api.exceptions import ForbiddenException, UnauthorizedException
 from auth.authorization_service import AuthorizationService
 from auth.dependencies import get_authorization_service, get_session_service
 from auth.session.session_service import SessionService
-from fastapi import Depends, Request
-from models.request_context import RequestContext
 from models.base.id import Id
+from models.request_context import RequestContext
 from users.dependencies import get_user_service
 from users.user import User
 from users.user_service import UserService

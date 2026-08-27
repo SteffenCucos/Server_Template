@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from .perm_dao import PermDAO
+from .permission_dao import PermissionDAO
 from .role_dao import RoleDAO
-from .role_perm_dao import RolePermDAO
+from .role_permission_dao import RolePermissionDAO
 from .user_role_dao import UserRoleDAO
 
-__all__ = ["PermDAO", "RoleDAO", "RolePermDAO", "UserRoleDAO"]
+__all__ = ["PermissionDAO", "RoleDAO", "RolePermissionDAO", "UserRoleDAO"]

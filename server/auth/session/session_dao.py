@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from auth.session.session import Session
-from models.base.id import Id
-
 from db.daos.entity_dao import EntityDAO
 from db.repository import Repository
+from models.base.id import Id
 
 
 class SessionDAO(EntityDAO[Session]):
@@ -14,6 +13,6 @@ class SessionDAO(EntityDAO[Session]):
     async def list_for_user(self, user_id: Id | str) -> list[Session]:
         return [
             session
-            for session in await self.list()
+            for session in await self.enumerate()
             if str(session.user_id) == str(user_id)
         ]

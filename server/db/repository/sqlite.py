@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -70,7 +71,7 @@ class SQLiteRepository(Repository[EntityT]):
 
     async def find_one(self, condition: Mapping[str, Any]) -> EntityT | None:
         if not condition:
-            entities = await self.list(limit=1)
+            entities = await self.enumerate(limit=1)
             return entities[0] if entities else None
 
         if len(condition) == 1:
@@ -78,13 +79,25 @@ class SQLiteRepository(Repository[EntityT]):
             if field in {self._id_field, "_id", "id"}:
                 return await self.get_by_id(str(value))
 
-        for entity in await self.list():
+        for entity in await self.enumerate():
             record = self._serializer.to_record(entity)
             if all(str(record.get(field)) == str(value) for field, value in condition.items()):
                 return entity
         return None
 
-    async def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
+    async def find_all(self, condition: Mapping[str, Any]) -> list[EntityT]:
+        if not condition:
+            return await self.enumerate()
+
+        entities = await self.enumerate()
+        matching: list[EntityT] = []
+        for entity in entities:
+            record = self._serializer.to_record(entity)
+            if all(str(record.get(field)) == str(value) for field, value in condition.items()):
+                matching.append(entity)
+        return matching
+
+    async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         connection = await self._get_connection()
         cursor = await connection.execute(
             f'SELECT id, "{self._data_column}" FROM "{self._table}" '
@@ -120,7 +133,7 @@ class SQLiteRepository(Repository[EntityT]):
             f'DELETE FROM "{self._table}" WHERE id = ?',
             (entity_id,),
         )
-        deleted_count = cursor.rowcount
+        deleted_count = int(cursor.rowcount or 0)
         await cursor.close()
         await connection.commit()
         return deleted_count > 0

@@ -1,63 +1,42 @@
-from auth.rbac.daos import PermDAO, RolePermDAO, UserRoleDAO
-from auth.rbac.permission_tree import PermissionTree
-from auth.rbac.tree_store import TreeStore
+from auth.rbac.authorization_tree_service import AuthorizationTreeService
+from auth.rbac.daos import RolePermissionDAO
+from auth.rbac.daos.user_role_dao import UserRoleDAO
+from auth.rbac.models import Permission, Role, RolePermission, UserRole
+from auth.rbac.permission_service import PermissionService
+from auth.rbac.role_service import RoleService
 from models.base.id import Id
-
-
-_STORE = TreeStore()
-_TREE_CLASS = PermissionTree
 
 
 class AuthorizationService:
     def __init__(
         self,
+        role_permission_dao: RolePermissionDAO,
         user_role_dao: UserRoleDAO,
-        role_perm_dao: RolePermDAO,
-        perm_dao: PermDAO,
-        tree_store: TreeStore | None = None,
+        role_service: RoleService,
+        permission_service: PermissionService,
+        authorization_tree_service: AuthorizationTreeService
     ) -> None:
+        self.role_permission_dao = role_permission_dao
         self.user_role_dao = user_role_dao
-        self.role_perm_dao = role_perm_dao
-        self.perm_dao = perm_dao
-        self.tree_store = tree_store or _STORE
+        self.role_service = role_service
+        self.permission_service = permission_service
+        self.authorization_tree_service = authorization_tree_service
 
-    async def user_has_access(self, user_id: Id | str, required: str) -> bool:
-        for role_id in await self._role_ids_for_user(user_id):
-            role_tree = await self._tree_for_role(role_id)
-            if role_tree.allows(required):
-                return True
-        return False
+    async def user_has_access(self, user_id: Id, permission_string: str) -> bool:
+        return await self.authorization_tree_service.user_has_access(user_id, permission_string)
 
-    async def _role_ids_for_user(self, user_id: Id | str) -> list[str]:
-        key = str(user_id)
-        if key not in self.tree_store.role_ids_by_user_id:
-            self.tree_store.role_ids_by_user_id[key] = [
-                str(user_role.role_id)
-                for user_role in await self.user_role_dao.list_for_user(user_id)
-            ]
-        return self.tree_store.role_ids_by_user_id[key]
+    async def create_role(self, name: str, description: str) -> Role:
+        return await self.role_service.create_or_update_role(name, description)
 
-    async def _tree_for_role(self, role_id: Id | str) -> PermissionTree:
-        key = str(role_id)
-        if key not in self.tree_store.role_tree_by_role_id:
-            self.tree_store.role_tree_by_role_id[key] = await self._build_tree_for_role(
-                role_id
-            )
-        return self.tree_store.role_tree_by_role_id[key]
+    async def create_permission(self, description: str, key: str) -> Permission:
+        return await self.permission_service.create_or_update_permission(description, key)
 
-    async def _build_tree_for_role(self, role_id: Id | str) -> PermissionTree:
-        role_tree = _TREE_CLASS()
-        for role_perm in await self.role_perm_dao.list_for_role(role_id):
-            perm = await self.perm_dao.get_by_id(role_perm.permission_id)
-            if perm:
-                role_tree.add(perm.key)
-        return role_tree
+    async def create_role_permission(self, role_id: Id, permission_id: Id) -> RolePermission:
+        return await self.role_permission_dao.create(RolePermission(role_id, permission_id))
 
-    async def list_access_keys(self, user_id: Id | str) -> list[str]:
-        keys: list[str] = []
-        for role_id in await self._role_ids_for_user(user_id):
-            for role_perm in await self.role_perm_dao.list_for_role(role_id):
-                perm = await self.perm_dao.get_by_id(role_perm.permission_id)
-                if perm:
-                    keys.append(perm.key)
-        return keys
+    async def create_user_role(self, user_id: Id, role_id: Id) -> UserRole:
+        user_role = await self.user_role_dao.create(UserRole(user_id, role_id))
+        # Invalidate the cache for the user's roles in the authorization tree service
+        self.authorization_tree_service.add_user_role(user_id, role_id)
+        return user_role
+    

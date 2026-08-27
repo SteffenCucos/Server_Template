@@ -4,11 +4,10 @@ from collections.abc import Mapping
 from datetime import datetime as Datetime
 from typing import Any, Generic, TypeVar
 
-from models.base.entity import IdEntity
-from models.base.id import Id
-
 from db.repository import Repository
 from db.serializing_middleware import get_application_serializer
+from models.base.entity import IdEntity
+from models.base.id import Id
 
 TEntity = TypeVar("TEntity", bound=IdEntity)
 
@@ -39,11 +38,11 @@ class EntityDAO(Generic[TEntity]):
     async def find_one(self, condition: Mapping[str, Any]) -> TEntity | None:
         return await self.repository.find_one(condition)
 
-    async def list(self, *, limit: int = -1, offset: int = 0) -> list[TEntity]:
-        return await self.repository.list(limit=limit, offset=offset)
+    async def find_all(self, condition: Mapping[str, Any]) -> list[TEntity]:
+        return await self.repository.find_all(condition)
 
-    async def find_all(self) -> list[TEntity]:
-        return await self.list()
+    async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[TEntity]:
+        return await self.repository.enumerate(limit=limit, offset=offset)
 
     async def update(
         self,

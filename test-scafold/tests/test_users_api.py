@@ -3,16 +3,18 @@ from __future__ import annotations
 import importlib
 import os
 import sys
+
 from collections.abc import Iterator
 from pathlib import Path
-from unittest.mock import create_autospec
 from uuid import uuid4
 
 import pytest
+
 from fastapi.testclient import TestClient
 
-
-APP_ROOT = Path(os.environ.get("TEST_SCAFOLD_APP_ROOT", "test-scafold/app")).resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+configured_app_root = os.environ.get("TEST_SCAFOLD_APP_ROOT")
+APP_ROOT = Path(configured_app_root).resolve() if configured_app_root else PROJECT_ROOT
 SERVER_ROOT = APP_ROOT / "server"
 
 
@@ -25,8 +27,8 @@ def _clear_scaffold_modules() -> None:
 
 @pytest.fixture()
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    assert APP_ROOT.exists(), f"scaffold app does not exist: {APP_ROOT}"
-    assert SERVER_ROOT.exists(), f"scaffold server package does not exist: {SERVER_ROOT}"
+    assert APP_ROOT.exists(), f"application root does not exist: {APP_ROOT}"
+    assert SERVER_ROOT.exists(), f"server package does not exist: {SERVER_ROOT}"
 
     monkeypatch.setenv("APP_DB_NAME", f"api_tests_{uuid4().hex}")
     _clear_scaffold_modules()
@@ -68,18 +70,46 @@ def _login(client: TestClient, payload: dict[str, str]) -> str:
     return session_id
 
 
-def _allow_all_permissions(client: TestClient):
-    auth_dependencies = importlib.import_module("auth.dependencies")
-    authorization_module = importlib.import_module("auth.authorization_service")
-    authorization_service = create_autospec(
-        authorization_module.AuthorizationService,
-        instance=True,
+def _create_permission(client: TestClient, key: str) -> str:
+    response = client.post(
+        "/api/v1/permissions",
+        json={"description": key, "permission": key},
     )
-    authorization_service.user_has_access.return_value = True
-    client.app.dependency_overrides[auth_dependencies.get_authorization_service] = (
-        lambda: authorization_service
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def _create_role(client: TestClient, name: str) -> str:
+    response = client.post(
+        "/api/v1/roles",
+        json={"description": name, "name": name},
     )
-    return authorization_service
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def _grant_permission(client: TestClient, role_id: str, permission_id: str) -> None:
+    response = client.post(
+        f"/api/v1/roles/{role_id}/permission/{permission_id}",
+    )
+    assert response.status_code == 200, response.text
+
+
+def _assign_role(client: TestClient, role_id: str, user_id: str) -> None:
+    response = client.post(f"/api/v1/roles/{role_id}/user/{user_id}")
+    assert response.status_code == 200, response.text
+
+
+def _configure_permissions(
+    client: TestClient,
+    user_id: str,
+    permission_keys: list[str],
+) -> None:
+    role_id = _create_role(client, f"role_{uuid4().hex}")
+    for key in permission_keys:
+        permission_id = _create_permission(client, key)
+        _grant_permission(client, role_id, permission_id)
+    _assign_role(client, role_id, user_id)
 
 
 def test_health_reports_running_database(client: TestClient) -> None:
@@ -96,6 +126,8 @@ def test_create_and_list_users(client: TestClient) -> None:
     assert isinstance(user_id, str)
     assert user_id
 
+    _configure_permissions(client, user_id, [f"read/users/{user_id}"])
+    _login(client, payload)
     response = client.get("/api/v1/users")
     assert response.status_code == 200, response.text
     users = response.json()
@@ -178,7 +210,11 @@ def test_update_user(client: TestClient) -> None:
     payload = _unique_user_payload()
     user_id = _create_user(client, payload)
     _login(client, payload)
-    authorization_service = _allow_all_permissions(client)
+    _configure_permissions(
+        client,
+        user_id,
+        [f"read/users/{user_id}", f"write/users/{user_id}"],
+    )
     updated_email = f"updated_{uuid4().hex}@example.com"
 
     response = client.patch(
@@ -198,15 +234,12 @@ def test_update_user(client: TestClient) -> None:
         for user in users_response.json()
     )
 
-    permission = authorization_service.user_has_access.await_args.args[1]
-    assert permission == f"update/users/{user_id}"
-
 
 def test_delete_user_and_sessions(client: TestClient) -> None:
     payload = _unique_user_payload()
     user_id = _create_user(client, payload)
+    _configure_permissions(client, user_id, [f"delete/users/{user_id}"])
     _login(client, payload)
-    authorization_service = _allow_all_permissions(client)
 
     response = client.delete(f"/api/v1/users/{user_id}")
 
@@ -214,12 +247,14 @@ def test_delete_user_and_sessions(client: TestClient) -> None:
     deleted_user = response.json()
     assert deleted_user["_id"] == user_id
 
+    # Deleting the user also deletes their sessions, so the current client
+    # can no longer access protected user-list routes.
     users_response = client.get("/api/v1/users")
-    assert users_response.status_code == 200, users_response.text
-    assert all(user["_id"] != user_id for user in users_response.json())
+    assert users_response.status_code == 401, users_response.text
 
-    permission = authorization_service.user_has_access.await_args.args[1]
-    assert permission == f"delete/users/{user_id}"
+    sessions_response = client.get("/api/v1/sessions")
+    assert sessions_response.status_code == 200, sessions_response.text
+    assert payload["user_name"] not in sessions_response.text
 
     protected_response = client.get(f"/api/v1/users/{user_id}")
     assert protected_response.status_code == 401, protected_response.text

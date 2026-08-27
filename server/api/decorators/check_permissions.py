@@ -1,7 +1,7 @@
 """Permission annotation wired into FastAPI dependency injection."""
 
-from api.auth.endpoint_types import EndpointDecorator
-from api.auth.route_permissions import mark_permission_required
+from api.authentication.endpoint_types import EndpointDecorator
+from api.authentication.route_permissions import mark_permission_required
 
 
 def check_permission(permission: str | None = None) -> EndpointDecorator:

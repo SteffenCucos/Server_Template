@@ -1,12 +1,13 @@
 
 import requests
-from requests.sessions import Session
+
 from requests.adapters import HTTPAdapter
+from requests.sessions import Session
 from urllib3.util.retry import Retry
 
 
 def get_retry_http() -> Session:
-    retry_strategy = Retry(
+    retry_strategy = Retry( # type: ignore
         total=3,
         status_forcelist=[429, 500, 502, 503, 504],
         method_whitelist=["HEAD", "GET", "OPTIONS"],

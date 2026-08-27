@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+
 from collections.abc import Mapping
 from threading import Lock
 from typing import Any
@@ -63,7 +64,13 @@ class MongoRepository(Repository[EntityT]):
             return None
         return self._from_backend_record(record)
 
-    async def list(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
+    async def find_all(self, condition: Mapping[str, Any]) -> list[EntityT]:
+        collection = await self._get_collection()
+        cursor = collection.find(self._to_backend_condition(condition)).sort("_id", 1)
+        records = await cursor.to_list(None)
+        return [self._from_backend_record(record) for record in records]
+
+    async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         collection = await self._get_collection()
         cursor = collection.find({}).sort("_id", 1).skip(offset)
         if limit > 0:
@@ -91,7 +98,8 @@ class MongoRepository(Repository[EntityT]):
     async def delete(self, entity_id: str) -> bool:
         collection = await self._get_collection()
         result = await collection.delete_one({"_id": entity_id})
-        return result.deleted_count > 0
+        deleted_count = int(result.deleted_count or 0)
+        return deleted_count > 0
 
     async def close(self) -> None:
         if self._client is not None:

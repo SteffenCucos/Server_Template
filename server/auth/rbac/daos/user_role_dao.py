@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from auth.rbac import UserRole
-from models.base.id import Id
-
 from db.daos.entity_dao import EntityDAO
 from db.repository import Repository
+from models.base.id import Id
 
 
 class UserRoleDAO(EntityDAO[UserRole]):
@@ -13,10 +12,10 @@ class UserRoleDAO(EntityDAO[UserRole]):
 
     async def list_for_user(self, user_id: Id | str) -> list[UserRole]:
         return [
-            item for item in await self.list() if str(item.user_id) == str(user_id)
+            item for item in await self.enumerate() if str(item.user_id) == str(user_id)
         ]
 
     async def list_for_role(self, role_id: Id | str) -> list[UserRole]:
         return [
-            item for item in await self.list() if str(item.role_id) == str(role_id)
+            item for item in await self.enumerate() if str(item.role_id) == str(role_id)
         ]

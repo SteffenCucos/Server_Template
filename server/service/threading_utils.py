@@ -1,4 +1,4 @@
-from threading import Thread, get_native_id
+from threading import get_native_id
 
 
 def get_current_pid() -> int:

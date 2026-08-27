@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+
 from pathlib import Path
 
 DEFAULT_TEMPLATE_REPO = "https://github.com/SteffenCucos/Server_Template.git"

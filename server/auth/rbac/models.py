@@ -1,21 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Union
 
 from models.base.entity import Entity
 from models.base.id import Id
 
 
 @dataclass
-class Permission(Entity("key")):  # type: ignore[misc]
+class Permission(Entity()):  # type: ignore[misc]
     key: str
-    description: str | None = None
+    description: Union[str, None] = None
 
 
 @dataclass
 class Role(Entity("name")):  # type: ignore[misc]
     name: str
-    description: str | None = None
+    description: Union[str, None] = None
 
 
 @dataclass

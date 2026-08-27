@@ -2,8 +2,10 @@ import logging
 import logging.config
 
 import uvicorn
+
 from fastapi import FastAPI
 
+from api.v1.api import api_router
 from config import config
 
 log_config = {
@@ -37,7 +39,6 @@ logger = logging.getLogger()
 logger = logging.getLogger(__name__) 
 
 app = FastAPI()
-from api.v1.api import api_router
 
 app.include_router(api_router)
 
