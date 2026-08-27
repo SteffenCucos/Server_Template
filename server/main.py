@@ -2,10 +2,11 @@ import logging
 import logging.config
 
 import uvicorn
+
 from fastapi import FastAPI
 
-from config import config
 from api.v1.api import api_router
+from config import config
 
 log_config = {
     "version": 1,

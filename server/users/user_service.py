@@ -1,11 +1,12 @@
 import logging
+
 from dataclasses import dataclass
 
 from api.exceptions import UnprocessableEntityException
+from auth.password.password_service import PasswordService
 from models.base.id import Id
 from users.user import User
 from users.user_dao import UserDAO
-from auth.password.password_service import PasswordService
 
 logger = logging.getLogger(__name__)
 

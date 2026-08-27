@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+
 from collections.abc import Mapping
 from threading import Lock
 from typing import Any
@@ -62,6 +63,12 @@ class MongoRepository(Repository[EntityT]):
         if record is None:
             return None
         return self._from_backend_record(record)
+
+    async def find_all(self, condition: Mapping[str, Any]) -> list[EntityT]:
+        collection = await self._get_collection()
+        cursor = collection.find(self._to_backend_condition(condition)).sort("_id", 1)
+        records = await cursor.to_list(None)
+        return [self._from_backend_record(record) for record in records]
 
     async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         collection = await self._get_collection()

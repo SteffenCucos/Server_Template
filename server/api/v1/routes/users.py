@@ -1,17 +1,19 @@
 import logging
+
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated
 
+from fastapi import Depends
+
+from api.authentication.dependencies import require_current_user
 from api.decorators.check_permissions import check_permission
-from api.auth.dependencies import require_current_user
 from api.exceptions import NotFoundException
 from api.router import Router
 from api.v1 import base_route
-from auth.dependencies import get_authorization_service, get_session_service
 from auth.authorization_service import AuthorizationService
+from auth.dependencies import get_authorization_service, get_session_service
 from auth.session.session_service import SessionService
-from fastapi import Depends
 from users.dependencies import get_user_service
 from users.user import User
 from users.user_service import CreateUserRequest, UpdateUserRequest, UserService
@@ -88,7 +90,7 @@ async def get_user(
 
 
 @router.patch("/{user_id}")
-@check_permission("update/users/{user_id}")
+@check_permission("write/users/{user_id}")
 async def update_user(
     user_id: str,
     user_request: UpdateUserRequest,

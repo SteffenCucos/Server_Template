@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from db.daos.entity_dao import EntityDAO
 from db.repository import Repository
-from users.user import User
 from models.base.id import Id
+from users.user import User
 
 
 class UserDAO(EntityDAO[User]):

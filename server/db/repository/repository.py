@@ -58,6 +58,11 @@ class Repository(ABC, Generic[EntityT]):
         raise NotImplementedError
 
     @abstractmethod
+    async def find_all(self, condition: Mapping[str, Any]) -> list[EntityT]:
+        """Return all entities matching a primitive equality condition."""
+        raise NotImplementedError
+
+    @abstractmethod
     async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         """Return entities in deterministic backend order."""
         raise NotImplementedError

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from auth.rbac import Role
-
 from db.daos.entity_dao import EntityDAO
 from db.repository import Repository
 

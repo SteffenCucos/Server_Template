@@ -1,15 +1,16 @@
-from collections.abc import Callable
 import logging
+
+from collections.abc import Callable
 from functools import wraps
 from inspect import iscoroutinefunction, signature
 from typing import Any, cast
 
-from api.auth.route import AuthzRoute
-from db.serializing_middleware import get_application_serializer
 from fastapi import APIRouter, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from api.auth.endpoint_types import EndpointT
+from api.authentication.endpoint_types import EndpointT
+from api.authentication.route import AuthzRoute
+from db.serializing_middleware import get_application_serializer
 
 serializer = get_application_serializer()
 

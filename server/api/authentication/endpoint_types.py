@@ -3,8 +3,6 @@
 from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
-
-
 EndpointT = TypeVar("EndpointT", bound=Callable[..., Any])
 
 

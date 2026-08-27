@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from auth.rbac import UserRole
-from models.base.id import Id
-
 from db.daos.entity_dao import EntityDAO
 from db.repository import Repository
+from models.base.id import Id
 
 
 class UserRoleDAO(EntityDAO[UserRole]):

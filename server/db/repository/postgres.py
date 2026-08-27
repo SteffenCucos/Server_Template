@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+
 from collections.abc import Mapping
 from typing import Any
 
@@ -77,6 +78,18 @@ class PostgresRepository(Repository[EntityT]):
             if all(str(record.get(field)) == str(value) for field, value in condition.items()):
                 return entity
         return None
+
+    async def find_all(self, condition: Mapping[str, Any]) -> list[EntityT]:
+        if not condition:
+            return await self.enumerate()
+
+        entities = await self.enumerate()
+        matching: list[EntityT] = []
+        for entity in entities:
+            record = self._serializer.to_record(entity)
+            if all(str(record.get(field)) == str(value) for field, value in condition.items()):
+                matching.append(entity)
+        return matching
 
     async def enumerate(self, *, limit: int = -1, offset: int = 0) -> list[EntityT]:
         connection = await self._get_connection()
