@@ -7,7 +7,7 @@ from models.base.id import Id
 
 
 @dataclass
-class Permission(Entity("key")):  # type: ignore[misc]
+class Permission(Entity()):  # type: ignore[misc]
     key: str
     description: str | None = None
 

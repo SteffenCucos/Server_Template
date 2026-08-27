@@ -43,7 +43,7 @@ class RolePermissionDTO:
     permission: str
 
 
-@router.get("")
+@router.get("", response_model=None)
 async def list_roles(
     role_service: Annotated[RoleService, Depends(get_role_service)]
 ) -> list[Role]:
@@ -60,7 +60,7 @@ async def create_role(
     )
     return str(role._id)
 
-@router.get("/{role_id}/permissions")
+@router.get("/{role_id}/permissions", response_model=None)
 async def get_permission_roles(
     role_id: str,
     role_permission_dao: Annotated[RolePermissionDAO, Depends(get_role_permission_dao)],
@@ -82,12 +82,15 @@ async def get_permission_roles(
 
 @router.post("/{role_id}/permission/{permission_id}")
 async def create_permission_role(
-    role_id: Id,
-    permission_id: Id,
+    role_id: str,
+    permission_id: str,
     role_service: Annotated[RoleService, Depends(get_role_service)],
     permission_service: Annotated[PermissionService, Depends(get_permission_service)],
     role_permission_dao: Annotated[RolePermissionDAO, Depends(get_role_permission_dao)]
 ) -> str:
+    role_id = Id(role_id)
+    permission_id = Id(permission_id)
+
     role = await role_service.get_role(role_id)
     if not role:
         raise  NotFoundException(f"Role {role_id} not found.")
@@ -96,14 +99,16 @@ async def create_permission_role(
     if not permission:
         raise NotFoundException(f"Permission {permission_id} not found.")
 
-    role_permission = await role_permission_dao.create(RolePermission(role_id, permission_id))
+    role_permission = await role_permission_dao.create(
+        RolePermission(role_id, permission_id)
+    )
 
     return str(role_permission._id)
 
 @router.delete("/{role_id}/permission/{permission_id}")
 async def delete_permission_role(
-    role_id: Id,
-    permission_id: Id,
+    role_id: str,
+    permission_id: str,
     role_permission_dao: Annotated[RolePermissionDAO, Depends(get_role_permission_dao)]
 ) -> str:
     role_permission = await role_permission_dao.find_one({ "role_id": role_id, "permission_id": permission_id })
@@ -113,21 +118,22 @@ async def delete_permission_role(
     await role_permission_dao.delete(role_permission._id)
     return str(role_permission._id)
 
-@router.get("/{role_id}/users")
+@router.get("/{role_id}/users", response_model=None)
 async def get_users_for_role(
-    role_id: Id,
+    role_id: str,
     role_service: Annotated[RoleService, Depends(get_role_service)],
     user_role_dao: Annotated[UserRoleDAO, Depends(get_user_role_dao)]
 ) -> list[UserRole]:
+    role_id = Id(role_id)
     role = await role_service.get_role(role_id)
     if not role:
         raise NotFoundException(f"Role {role_id} not found.")
 
     return await user_role_dao.find_all({"role_id": role_id})
 
-@router.get("/{user_id}")
+@router.get("/{user_id}", response_model=None)
 async def get_roles_for_user(
-    user_id: Id,
+    user_id: str,
     user_service: Annotated[UserService, Depends(get_user_service)],
     user_role_dao: Annotated[UserRoleDAO, Depends(get_user_role_dao)]
 ) -> list[UserRole]:
@@ -140,12 +146,14 @@ async def get_roles_for_user(
 
 @router.post("/{role_id}/user/{user_id}")
 async def add_user_to_role(
-    role_id: Id,
-    user_id: Id,
+    role_id: str,
+    user_id: str,
     role_service: Annotated[RoleService, Depends(get_role_service)],
     user_service: Annotated[UserService, Depends(get_user_service)],
     user_role_dao: Annotated[UserRoleDAO, Depends(get_user_role_dao)]
 ) -> str:
+    role_id = Id(role_id)
+    user_id = Id(user_id)
     role = await role_service.get_role(role_id)
     if not role:
         raise NotFoundException(f"Role {role_id} not found.")
