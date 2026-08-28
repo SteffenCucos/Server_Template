@@ -25,7 +25,7 @@ class PermissionService:
         ))
         return permission
 
-    async def get_permission(self, id: Id | str) -> Permission | None:
+    async def get_permission(self, id: Id) -> Permission | None:
         return await self.permission_dao.get_by_id(id)
 
     async def delete_permission(self, id: Id) -> bool:

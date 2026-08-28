@@ -16,7 +16,7 @@ serializer = get_application_serializer()
 
 
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class Router(APIRouter):

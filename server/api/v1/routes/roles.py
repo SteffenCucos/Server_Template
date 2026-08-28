@@ -67,6 +67,7 @@ async def get_permission_roles(
     permission_service: Annotated[PermissionService, Depends(get_permission_service)]
 ) -> list[RolePermissionDTO]:
     role_permissions: list[RolePermissionDTO] = []
+    role_id = Id(role_id)
     for role_permission in await role_permission_dao.list_for_role(role_id):
         permission = await permission_service.get_permission(role_permission.permission_id)
         if not permission:
@@ -137,6 +138,7 @@ async def get_roles_for_user(
     user_service: Annotated[UserService, Depends(get_user_service)],
     user_role_dao: Annotated[UserRoleDAO, Depends(get_user_role_dao)]
 ) -> list[UserRole]:
+    user_id = Id(user_id)
     user = await user_service.get_user(user_id)
     if not user:
         raise NotFoundException(f"User {user_id} not found")

@@ -47,7 +47,7 @@ class UserService:
         )
         return await self.user_dao.create(user)
 
-    async def get_user(self, user_id: Id | str) -> User | None:
+    async def get_user(self, user_id: Id) -> User | None:
         return await self.user_dao.get_by_id(user_id)
 
     async def get_user_by_name(self, user_name: str) -> User | None:

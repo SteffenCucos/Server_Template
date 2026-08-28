@@ -33,7 +33,6 @@ log_config = {
 
 # setup loggers
 logging.config.dictConfig(log_config)
-logger = logging.getLogger()
 
 # get root logger
 logger = logging.getLogger(__name__) 

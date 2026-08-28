@@ -30,7 +30,7 @@ class RoleService:
         ))
         return role
 
-    async def delete_role(self, id: str) -> bool:
+    async def delete_role(self, id: Id) -> bool:
         return await self.role_dao.delete(id)
 
     async def enumerate_rolls(self) -> list[Role]:

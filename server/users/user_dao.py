@@ -16,5 +16,5 @@ class UserDAO(EntityDAO[User]):
     async def get_by_email(self, email: str) -> User | None:
         return await self.find_one({"email": email})
 
-    async def update_password_hash(self, user_id: Id | str, password_hash: str) -> User | None:
+    async def update_password_hash(self, user_id: Id, password_hash: str) -> User | None:
         return await self.update(user_id, {"password_hash": password_hash})

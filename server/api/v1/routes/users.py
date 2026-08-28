@@ -14,11 +14,12 @@ from api.v1 import base_route
 from auth.authorization_service import AuthorizationService
 from auth.dependencies import get_authorization_service, get_session_service
 from auth.session.session_service import SessionService
+from models.base.id import Id
 from users.dependencies import get_user_service
 from users.user import User
 from users.user_service import CreateUserRequest, UpdateUserRequest, UserService
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 router = Router(
     prefix=base_route + "/users",
@@ -82,6 +83,7 @@ async def get_user(
     user_id: str,
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> UserResponse:
+    user_id = Id(user_id)
     user = await user_service.get_user(user_id)
     if not user:
         raise NotFoundException(f"User with id:{user_id} does not exist")
@@ -96,6 +98,7 @@ async def update_user(
     user_request: UpdateUserRequest,
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> UserResponse:
+    user_id = Id(user_id)
     user = await user_service.get_user(user_id)
     if not user:
         raise NotFoundException(f"User with id:{user_id} does not exist")
@@ -111,6 +114,7 @@ async def delete_user(
     user_service: Annotated[UserService, Depends(get_user_service)],
     session_service: Annotated[SessionService, Depends(get_session_service)],
 ) -> UserResponse:
+    user_id = Id(user_id)
     user = await user_service.get_user(user_id)
     if not user:
         raise NotFoundException(f"User with id:{user_id} does not exist")

@@ -10,7 +10,7 @@ class SessionDAO(EntityDAO[Session]):
     def __init__(self, repository: Repository[Session]) -> None:
         super().__init__(repository)
 
-    async def list_for_user(self, user_id: Id | str) -> list[Session]:
+    async def list_for_user(self, user_id: Id) -> list[Session]:
         return [
             session
             for session in await self.enumerate()

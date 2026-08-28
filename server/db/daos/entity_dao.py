@@ -29,10 +29,10 @@ class EntityDAO(Generic[TEntity]):
     async def save_many(self, entities: list[TEntity]) -> list[Id]:
         return [await self.save(entity) for entity in entities]
 
-    async def get_by_id(self, entity_id: Id | str) -> TEntity | None:
+    async def get_by_id(self, entity_id: Id) -> TEntity | None:
         return await self.repository.get_by_id(str(entity_id))
 
-    async def find_one_by_id(self, entity_id: Id | str) -> TEntity | None:
+    async def find_one_by_id(self, entity_id: Id) -> TEntity | None:
         return await self.get_by_id(entity_id)
 
     async def find_one(self, condition: Mapping[str, Any]) -> TEntity | None:
@@ -46,7 +46,7 @@ class EntityDAO(Generic[TEntity]):
 
     async def update(
         self,
-        entity_id: Id | str,
+        entity_id: Id,
         changes: Mapping[str, Any],
     ) -> TEntity | None:
         update_record = dict(changes)
@@ -62,10 +62,10 @@ class EntityDAO(Generic[TEntity]):
     async def update_many(self, entities: list[TEntity]) -> list[TEntity | None]:
         return [await self.update_entity(entity) for entity in entities]
 
-    async def delete(self, entity_id: Id | str) -> bool:
+    async def delete(self, entity_id: Id) -> bool:
         return await self.repository.delete(str(entity_id))
 
-    async def delete_by_id(self, entity_id: Id | str) -> bool:
+    async def delete_by_id(self, entity_id: Id) -> bool:
         return await self.delete(entity_id)
 
     async def close(self) -> None:
