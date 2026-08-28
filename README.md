@@ -343,5 +343,6 @@ Install the development quality tools with the project and run the same checks u
 ```powershell
 python -m pip install -e ".[quality]"
 python -m mypy
-python -m ruff check server server_template
+python -m ruff check server server_template tests test-scafold --fix
+python -m pytest test-scafold/tests tests  
 ```

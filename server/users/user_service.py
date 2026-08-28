@@ -26,6 +26,9 @@ class UpdateUserRequest:
 
 
 class UserService:
+    """
+    Manage users
+    """
     def __init__(self, user_dao: UserDAO, password_service: PasswordService) -> None:
         self.user_dao = user_dao
         self.password_service = password_service

@@ -24,6 +24,9 @@ def repository_dependency(
     serializer: EntitySerializer[EntityT],
     id_field: str = "_id",
 ) -> Callable[..., AsyncIterator[Repository[EntityT]]]:
+    """
+    Returns a method used during dependency injection that resolves a repository of the correct resource
+    """
     async def get_repository(
         settings: DatabaseSettings = Depends(get_database_settings),
     ) -> AsyncIterator[Repository[EntityT]]:

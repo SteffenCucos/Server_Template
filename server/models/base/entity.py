@@ -17,6 +17,9 @@ class IdEntity:
 
 
 def Entity(_id_source: str | None = None) -> type[IdEntity]:
+    """
+    Base Entity class that handles base fields and custom Id logic
+    """
     class WiredIdEntity(IdEntity):
         def __post_init__(self) -> None:
             if _id_source:
