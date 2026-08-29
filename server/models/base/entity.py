@@ -5,15 +5,15 @@ from .id import Id, create_id
 
 
 class IdEntity:
-    _id: Id
-    _created_date: Datetime
-    _updated_date: Datetime
+    id: Id
+    created_date: Datetime
+    updated_date: Datetime
 
     def set_created_date(self) -> None:
-        self._created_date = Datetime.now()
+        self.created_date = Datetime.now()
 
     def set_updated_date(self) -> None:
-        self._updated_date = Datetime.now()
+        self.updated_date = Datetime.now()
 
 
 def Entity(_id_source: str | None = None) -> type[IdEntity]:
@@ -23,14 +23,14 @@ def Entity(_id_source: str | None = None) -> type[IdEntity]:
     class WiredIdEntity(IdEntity):
         def __post_init__(self) -> None:
             if _id_source:
-                self._id = Id(str(getattr(self, _id_source)))
+                self.id = Id(str(getattr(self, _id_source)))
             else:
-                self._id = create_id()
+                self.id = create_id()
 
-            if not hasattr(self, "_created_date"):
+            if not hasattr(self, "created_date"):
                 self.set_created_date()
 
-            if not hasattr(self, "_updated_date"):
+            if not hasattr(self, "updated_date"):
                 self.set_updated_date()
 
     return WiredIdEntity

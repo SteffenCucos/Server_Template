@@ -24,7 +24,7 @@ class EntityDAO(Generic[TEntity]):
         return await self.repository.create(entity)
 
     async def save(self, entity: TEntity) -> Id:
-        return (await self.create(entity))._id
+        return (await self.create(entity)).id
 
     async def save_many(self, entities: list[TEntity]) -> list[Id]:
         return [await self.save(entity) for entity in entities]
@@ -57,7 +57,7 @@ class EntityDAO(Generic[TEntity]):
         self.prep_for_save(entity)
         update_record = self.serializer.serialize(entity)
         update_record.pop("_id", None)
-        return await self.repository.update(str(entity._id), update_record)
+        return await self.repository.update(str(entity.id), update_record)
 
     async def update_many(self, entities: list[TEntity]) -> list[TEntity | None]:
         return [await self.update_entity(entity) for entity in entities]
@@ -71,14 +71,12 @@ class EntityDAO(Generic[TEntity]):
     async def close(self) -> None:
         await self.repository.close()
 
-    @staticmethod
-    def prep_for_save(entity: TEntity) -> None:
-        EntityDAO.validate_has_id(entity)
-        if not hasattr(entity, "_created_date"):
+    def prep_for_save(self, entity: TEntity) -> None:
+        self.validate_has_id(entity)
+        if not hasattr(entity, "created_date"):
             entity.set_created_date()
         entity.set_updated_date()
 
-    @staticmethod
-    def validate_has_id(entity: TEntity) -> None:
-        if not hasattr(entity, "_id"):
-            raise ValueError("Entity must have _id")
+    def validate_has_id(self, entity: TEntity) -> None:
+        if not hasattr(entity, "id"):
+            raise ValueError("Entity must have id")

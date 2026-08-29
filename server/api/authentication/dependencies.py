@@ -84,12 +84,12 @@ class RequirePermission:
             self.requirement.permission,
             request,
         )
-        if await authorization_service.user_has_access(user._id, permission):
+        if await authorization_service.user_has_access(user.id, permission):
             return
 
         logger.info(
             "Authorization failed for user %s: %s",
-            user._id,
+            user.id,
             permission,
         )
         raise ForbiddenException("You don't have access to this resource")

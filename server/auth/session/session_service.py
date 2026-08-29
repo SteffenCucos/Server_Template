@@ -14,7 +14,7 @@ class SessionService:
         self.dao = dao
 
     async def create_session(self, user: User) -> Session:
-        session = Session(user._id)
+        session = Session(user.id)
         return await self.dao.create(session)
 
     async def get_session(self, session_id: Id) -> Session | None:
@@ -28,4 +28,4 @@ class SessionService:
 
     async def end_sessions_for_user(self, user_id: Id) -> None:
         for session in await self.dao.list_for_user(user_id):
-            await self.end_session(session._id)
+            await self.end_session(session.id)

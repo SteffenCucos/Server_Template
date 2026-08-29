@@ -17,15 +17,15 @@ def test_entity():
     entity = TestEntity(a=10)
 
     assert entity.a == 10
-    assert hasattr(entity, "_id")
-    assert hasattr(entity, "_created_date")
-    assert hasattr(entity, "_updated_date")
+    assert hasattr(entity, "id")
+    assert hasattr(entity, "created_date")
+    assert hasattr(entity, "updated_date")
 
     serialized = serializer.serialize(entity)
     deserialized: TestEntity = deserializer.deserialize(serialized, TestEntity)
-    id = deserialized._id
+    id = deserialized.id
     assert deserialized.a == 10
-    assert deserialized._id == id
+    assert deserialized.id == id
 
 
 def test_id_entity():
@@ -38,6 +38,6 @@ def test_id_entity():
 
     assert entity.a == 10
     assert entity.b == "bId"
-    assert entity._id == entity.b
-    assert hasattr(entity, "_created_date")
-    assert hasattr(entity, "_updated_date")
+    assert entity.id == entity.b
+    assert hasattr(entity, "created_date")
+    assert hasattr(entity, "updated_date")

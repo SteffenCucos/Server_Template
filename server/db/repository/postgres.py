@@ -29,7 +29,7 @@ class PostgresRepository(Repository[EntityT]):
         self._uri = uri
         self._table = table
         self._serializer = serializer
-        self._id_field = id_field
+        self.id_field = id_field
         self._data_column = data_column
         self._ensure_table_on_connect = ensure_table
         self._connection: AsyncConnection[TupleRow] | None = None
@@ -70,7 +70,7 @@ class PostgresRepository(Repository[EntityT]):
 
         if len(condition) == 1:
             field, value = next(iter(condition.items()))
-            if field in {self._id_field, "_id", "id"}:
+            if field in {self.id_field, "_id", "id"}:
                 return await self.get_by_id(str(value))
 
         for entity in await self.enumerate():
@@ -119,7 +119,7 @@ class PostgresRepository(Repository[EntityT]):
         _, current_payload = existing
         updated_payload = dict(current_payload or {})
         updated_payload.update(
-            {key: value for key, value in changes.items() if key != self._id_field}
+            {key: value for key, value in changes.items() if key != self.id_field}
         )
 
         query = sql.SQL(
@@ -193,12 +193,12 @@ class PostgresRepository(Repository[EntityT]):
             return result
 
     def _extract_id(self, record: Mapping[str, Any]) -> str:
-        if self._id_field not in record:
-            raise EntityIdRequiredError(f"entity record must include {self._id_field!r}")
-        return str(record[self._id_field])
+        if self.id_field not in record:
+            raise EntityIdRequiredError(f"entity record must include {self.id_field!r}")
+        return str(record[self.id_field])
 
     def _payload_without_id(self, record: Mapping[str, Any]) -> dict[str, Any]:
-        return {key: value for key, value in record.items() if key != self._id_field}
+        return {key: value for key, value in record.items() if key != self.id_field}
 
     def _row_to_entity(self, row: TupleRow | None) -> EntityT:
         if row is None:
@@ -206,5 +206,5 @@ class PostgresRepository(Repository[EntityT]):
 
         entity_id, payload = row
         record = dict(payload or {})
-        record[self._id_field] = entity_id
+        record[self.id_field] = entity_id
         return self._serializer.from_record(record)

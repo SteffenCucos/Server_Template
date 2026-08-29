@@ -30,4 +30,4 @@ async def create_permission(
         description=permission_request.description,
         key=permission_request.permission,
     )
-    return str(permission._id)
+    return str(permission.id)

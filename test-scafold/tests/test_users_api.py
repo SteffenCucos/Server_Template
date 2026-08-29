@@ -54,7 +54,7 @@ def _create_user(client: TestClient, payload: dict[str, str]) -> str:
     assert response.status_code == 200, response.text
     body = response.json()
     assert body
-    return body["_id"] if isinstance(body, dict) else body
+    return body["id"] if isinstance(body, dict) else body
 
 
 def _login(client: TestClient, payload: dict[str, str]) -> str:
@@ -224,13 +224,13 @@ def test_update_user(client: TestClient) -> None:
 
     assert response.status_code == 200, response.text
     updated_user = response.json()
-    assert updated_user["_id"] == user_id
+    assert updated_user["id"] == user_id
     assert updated_user["email"] == updated_email
 
     users_response = client.get("/api/v1/users")
     assert users_response.status_code == 200, users_response.text
     assert any(
-        user["_id"] == user_id and user["email"] == updated_email
+        user["id"] == user_id and user["email"] == updated_email
         for user in users_response.json()
     )
 
@@ -245,7 +245,7 @@ def test_delete_user_and_sessions(client: TestClient) -> None:
 
     assert response.status_code == 200, response.text
     deleted_user = response.json()
-    assert deleted_user["_id"] == user_id
+    assert deleted_user["id"] == user_id
 
     # Deleting the user also deletes their sessions, so the current client
     # can no longer access protected user-list routes.

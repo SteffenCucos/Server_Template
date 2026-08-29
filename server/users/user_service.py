@@ -64,13 +64,13 @@ class UserService:
 
         if user_request.user_name is not None and user_request.user_name != user.user_name:
             existing_user = await self.user_dao.get_by_name(user_request.user_name)
-            if existing_user and existing_user._id != user._id:
+            if existing_user and existing_user.id != user.id:
                 raise UnprocessableEntityException("Username is already taken")
             changes["user_name"] = user_request.user_name
 
         if user_request.email is not None and user_request.email != user.email:
             existing_user = await self.user_dao.get_by_email(user_request.email)
-            if existing_user and existing_user._id != user._id:
+            if existing_user and existing_user.id != user.id:
                 raise UnprocessableEntityException("Email is already in use.")
             changes["email"] = user_request.email
 
@@ -82,12 +82,12 @@ class UserService:
         if not changes:
             return user
 
-        updated_user = await self.user_dao.update(user._id, changes)
+        updated_user = await self.user_dao.update(user.id, changes)
         return updated_user or user
 
     async def update_password_hash(self, user: User, password_hash: str) -> User:
-        updated_user = await self.user_dao.update_password_hash(user._id, password_hash)
+        updated_user = await self.user_dao.update_password_hash(user.id, password_hash)
         return updated_user or user
 
     async def delete_user(self, user: User) -> bool:
-        return await self.user_dao.delete(user._id)
+        return await self.user_dao.delete(user.id)

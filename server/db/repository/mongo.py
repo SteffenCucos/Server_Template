@@ -40,7 +40,7 @@ class MongoRepository(Repository[EntityT]):
         self._database = database
         self._collection_name = collection
         self._serializer = serializer
-        self._id_field = id_field
+        self.id_field = id_field
         self._client: AsyncMongoClient[Mapping[str, Any]] | None = None
         self._collection: AsyncCollection[Mapping[str, Any]] | None = None
 
@@ -129,24 +129,24 @@ class MongoRepository(Repository[EntityT]):
             backend_record["_id"] = str(backend_record["_id"])
             return backend_record
 
-        if self._id_field not in backend_record:
-            raise EntityIdRequiredError(f"entity record must include {self._id_field!r}")
+        if self.id_field not in backend_record:
+            raise EntityIdRequiredError(f"entity record must include {self.id_field!r}")
 
-        backend_record["_id"] = str(backend_record.pop(self._id_field))
+        backend_record["_id"] = str(backend_record.pop(self.id_field))
         return backend_record
 
     def _to_backend_patch(self, changes: Mapping[str, Any]) -> Mapping[str, Any]:
         patch = dict(changes)
-        if self._id_field in patch:
-            patch["_id"] = str(patch.pop(self._id_field))
+        if self.id_field in patch:
+            patch["_id"] = str(patch.pop(self.id_field))
         if "_id" in patch:
             patch.pop("_id")
         return patch
 
     def _to_backend_condition(self, condition: Mapping[str, Any]) -> Mapping[str, Any]:
         query = dict(condition)
-        if self._id_field in query:
-            query["_id"] = str(query.pop(self._id_field))
+        if self.id_field in query:
+            query["_id"] = str(query.pop(self.id_field))
         if "_id" in query:
             query["_id"] = str(query["_id"])
         return query
@@ -154,7 +154,7 @@ class MongoRepository(Repository[EntityT]):
     def _from_backend_record(self, record: Mapping[str, Any]) -> EntityT:
         public_record = dict(record)
         if "_id" in public_record:
-            public_record[self._id_field] = str(public_record.pop("_id"))
+            public_record[self.id_field] = str(public_record.pop("_id"))
         return self._serializer.from_record(public_record)
 
 

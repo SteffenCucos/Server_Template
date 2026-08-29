@@ -71,25 +71,27 @@ class Router(APIRouter):
         # Preserve the endpoint execution model. FastAPI runs synchronous route
         # handlers in its thread pool, while async handlers must be awaited on
         # the event loop before their result can be serialized.
+        json_serialize: Any = None
         if iscoroutinefunction(func):
             @wraps(
                 func,
                 assigned=("__module__", "__name__", "__qualname__", "__doc__"),
             )
-            async def json_serialize(*positional: Any, **named: Any) -> Response:
+            async def async_json_serialize(*positional: Any, **named: Any) -> Response:
                 result = await func(*positional, **named)
                 return Router._serialize_result(result)
+            json_serialize = async_json_serialize
         else:
             @wraps(
                 func,
                 assigned=("__module__", "__name__", "__qualname__", "__doc__"),
             )
-            def json_serialize(*positional: Any, **named: Any) -> Response:
+            def sync_json_serialize(*positional: Any, **named: Any) -> Response:
                 result = func(*positional, **named)
                 return Router._serialize_result(result)
+            json_serialize = sync_json_serialize
         
-        
-        json_serialize.__signature__ = signature(func) # type: ignore
+        json_serialize.__signature__ = signature(func)
         return cast(EndpointT, json_serialize)
 
     @staticmethod

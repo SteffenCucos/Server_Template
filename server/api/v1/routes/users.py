@@ -28,9 +28,9 @@ router = Router(
 
 @dataclass
 class UserResponse:
-    _id: str
-    _created_date: datetime
-    _updated_date: datetime
+    id: str
+    created_date: datetime
+    updated_date: datetime
     user_name: str
     email: str
     email_verified: bool
@@ -38,9 +38,9 @@ class UserResponse:
 
 def _to_user_response(user: User) -> UserResponse:
     return UserResponse(
-        _id=str(user._id),
-        _created_date=user._created_date,
-        _updated_date=user._updated_date,
+        id=str(user.id),
+        created_date=user.created_date,
+        updated_date=user.updated_date,
         user_name=user.user_name,
         email=user.email,
         email_verified=user.email_verified,
@@ -53,7 +53,7 @@ async def create_user(
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> str:
     user = await user_service.create_user(user_request)
-    return str(user._id)
+    return str(user.id)
 
 
 @router.get("")
@@ -68,10 +68,10 @@ async def get_all_users(
     all_users = await user_service.get_all_users()
 
     # Filter out all users the calling user doesn't have permission to see
-    filtered = []
+    filtered: list[User] = []
     for user in all_users:
-        permission = f"read/users/{user._id}"
-        if await authorization_service.user_has_access(current_user._id, permission):
+        permission = f"read/users/{user.id}"
+        if await authorization_service.user_has_access(current_user.id, permission):
             filtered.append(user)
 
     return [_to_user_response(user) for user in filtered]

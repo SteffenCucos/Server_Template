@@ -25,7 +25,7 @@ def test_user_has_access_through_role_permission():
             UserRole(user_id=user_id, role_id=role_id),
         ]
         role_permission_dao.list_for_role.return_value = [
-            RolePermission(role_id=role_id, permission_id=perm._id),
+            RolePermission(role_id=role_id, permission_id=perm.id),
         ]
         permission_service.get_permission.return_value = perm
 
@@ -48,6 +48,6 @@ def test_user_has_access_through_role_permission():
 
         user_role_dao.list_for_user.assert_awaited_once_with(user_id)
         role_permission_dao.list_for_role.assert_awaited_once_with(role_id)
-        permission_service.get_permission.assert_awaited_once_with(perm._id)
+        permission_service.get_permission.assert_awaited_once_with(perm.id)
 
     asyncio.run(run_test())

@@ -1,6 +1,7 @@
 """Internal metadata attached by the public auth decorators."""
 
 from dataclasses import dataclass
+from typing import Any
 
 from .endpoint_types import EndpointDecorator, EndpointT
 
@@ -37,11 +38,11 @@ def mark_permission_required(
     return mark_endpoint
 
 
-def get_auth_required(endpoint: EndpointT) -> bool:
+def get_auth_required(endpoint: Any) -> bool:
     return bool(getattr(endpoint, _AUTH_REQUIRED_ATTRIBUTE, False))
 
 
 def get_permission_requirement(
-    endpoint: EndpointT,
+    endpoint: Any,
 ) -> PermissionRequirement | None:
     return getattr(endpoint, _PERMISSION_REQUIREMENT_ATTRIBUTE, None)
