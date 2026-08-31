@@ -10,7 +10,7 @@ def get_retry_http() -> Session:
     retry_strategy = Retry( # type: ignore
         total=3,
         status_forcelist=[429, 500, 502, 503, 504],
-        method_whitelist=["HEAD", "GET", "OPTIONS"],
+        method_whitelist=["HEAD", "GET", "OPTIONS"], # type: ignore
         backoff_factor=0.001
     )
 

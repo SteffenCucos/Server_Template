@@ -345,4 +345,7 @@ python -m pip install -e ".[quality]"
 python -m mypy
 python -m ruff check server server_template tests test-scafold --fix
 python -m pytest test-scafold/tests tests  
+$env:APP_DB_BACKEND = "sqlite"
+$env:APP_DB_URI = "sqlite:///local-api-test.db"
+$env:APP_DB_NAME = "local_api_test"
 ```
