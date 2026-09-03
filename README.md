@@ -86,8 +86,8 @@ class Project(Entity()):
 DAOs are the service-facing persistence layer. The generic `EntityDAO[TEntity]` wraps a backend-neutral `Repository[TEntity]` and owns shared entity lifecycle behavior such as ensuring IDs and updating timestamps before persistence.
 
 ```python
-from db.daos.entity_dao import EntityDAO
-from db.repository import Repository
+from persistence.daos.entity_dao import EntityDAO
+from persistence.repository import Repository
 
 
 class ProjectDAO(EntityDAO[Project]):
@@ -125,9 +125,9 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from db.dependencies import repository_dependency
-from db.pserialize_entity_serializer import PSerializeEntitySerializer
-from db.repository import Repository
+from persistence.dependencies import repository_dependency
+from persistence.pserialize_entity_serializer import PSerializeEntitySerializer
+from persistence.repository import Repository
 
 get_project_repository = repository_dependency(
     resource_name="projects",
