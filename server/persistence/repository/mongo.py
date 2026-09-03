@@ -20,7 +20,7 @@ MEMORY_MONGO_URIS = {
     "mongodb://memory",
     "mongodb://in-memory",
 }
-_SHARED_MEMORY_SERVERS: dict[str, object] = {}
+_SHARED_MEMORY_SERVERS: dict[str, MongoClient] = {}
 _MEMORY_SERVER_LOCK = Lock()
 
 
@@ -116,7 +116,7 @@ class MongoRepository(Repository[EntityT]):
         uri = self._uri
         if uri in MEMORY_MONGO_URIS:
             server = await asyncio.to_thread(_get_memory_mongo_server, uri)
-            host, port = server.address
+            host, port = server.address or "", ""
             uri = f"mongodb://{host}:{port}"
 
         self._client = AsyncMongoClient(uri)

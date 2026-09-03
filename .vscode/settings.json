@@ -9,7 +9,7 @@
   "python.analysis.typeCheckingMode": "strict",
   "files.exclude": {
     "**/__pycache__": true,
-    "**/__init__.py": true
+    "**/__init__.py": false
   },
   "explorer.compactFolders": true
 }

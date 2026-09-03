@@ -1,6 +1,6 @@
 
 from datetime import datetime
-from typing import Callable
+from typing import Callable, cast
 
 from pserialize import Deserializer, Serializer
 
@@ -11,7 +11,7 @@ def get_application_serializer() -> Serializer:
 
     return Serializer(
         middleware={
-            datetime: serializer
+            datetime: cast(Callable[[object], type], serializer)
         }
     )
 
@@ -22,6 +22,6 @@ def get_application_deserializer() -> Deserializer:
         
     return Deserializer(
         middleware={
-            datetime: deserializer
+            datetime: cast(Callable[[object], type], deserializer)
         }
     )

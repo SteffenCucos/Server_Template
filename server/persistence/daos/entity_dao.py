@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime as Datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
-from db.repository import Repository
-from db.serializing_middleware import get_application_serializer
+from persistence.repository import Repository
+from persistence.serializing_middleware import get_application_serializer
 from models.base.entity import IdEntity
 from models.base.id import Id
 
@@ -55,7 +55,7 @@ class EntityDAO(Generic[TEntity]):
 
     async def update_entity(self, entity: TEntity) -> TEntity | None:
         self.prep_for_save(entity)
-        update_record = self.serializer.serialize(entity)
+        update_record = cast(dict[str,Any], self.serializer.serialize(entity))
         update_record.pop("_id", None)
         return await self.repository.update(str(entity.id), update_record)
 

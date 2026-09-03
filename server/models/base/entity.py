@@ -1,13 +1,15 @@
 
 from datetime import datetime as Datetime
 
+from persistence.models import PRIMARY_KEY, DEFAULT_FACTORY, field
+
 from .id import Id, create_id
 
 
 class IdEntity:
-    id: Id
-    created_date: Datetime
-    updated_date: Datetime
+    id: Id = field(PRIMARY_KEY)
+    created_date: Datetime = field(DEFAULT_FACTORY=Datetime.now)
+    updated_date: Datetime = field(DEFAULT_FACTORY=Datetime.now)
 
     def set_created_date(self) -> None:
         self.created_date = Datetime.now()
