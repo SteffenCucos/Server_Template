@@ -6,6 +6,7 @@ from typing import Any, Generic, TypeVar, cast
 
 from persistence.repository import Repository
 from persistence.serializing_middleware import get_application_serializer
+
 from models.base.entity import IdEntity
 from models.base.id import Id
 

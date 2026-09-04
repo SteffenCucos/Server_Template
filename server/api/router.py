@@ -7,10 +7,10 @@ from typing import Any, cast
 
 from fastapi import APIRouter, Response
 from fastapi.responses import HTMLResponse, JSONResponse
+from persistence.serializing_middleware import get_application_serializer
 
 from api.authentication.endpoint_types import EndpointT
 from api.authentication.route import AuthzRoute
-from db.serializing_middleware import get_application_serializer
 
 serializer = get_application_serializer()
 

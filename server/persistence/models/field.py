@@ -1,6 +1,6 @@
 
-from dataclasses import field
-from typing import Any, cast
+from dataclasses import MISSING, field
+from typing import Any, Callable
 
 
 class FieldMetadata():
@@ -44,29 +44,30 @@ class FieldMetadata():
         return FieldMetadata(**combined_metadata)
 
 
-_keywords = set(["default", "default_factory", "init", "repr", "hash", "compare", "metadata", "kw_only", "doc"])
+def cfield(
+    *metadata_items: FieldMetadata,
+    default: Any = MISSING,
+    default_factory: Callable[[], Any] | Any = MISSING,
+    init: bool = True,
+    repr: bool = True,
+    hash: bool | None = None,
+    compare: bool = True,
+    kw_only: bool = False
+) -> Any:
+    merged_field_metadata = FieldMetadata()
 
+    for item in metadata_items:
+        merged_field_metadata = merged_field_metadata | item
 
-def cfield(*args: Any, **kwargs: Any) -> Any:  
-    """
-    Wrapper over dataclasses.field that considers possible FieldMetadata params 
-    and merges them into a single metadata parameter
-    """
-    metadata = dict()
-    new_kwargs = dict()
-    new_args = []
-    for arg in args:
-        if isinstance(arg, FieldMetadata):
-            metadata = {**arg._metadata}
-        else:
-            new_args.append(arg)
+    merged_metadata = merged_field_metadata._metadata
 
-    for key, value in kwargs.items():
-        if key in _keywords and key != "metadata":
-            new_kwargs[key] = value
-        elif key == "metadata":
-            metadata = metadata | cast(dict[str, Any], value)
-        else:
-            metadata[key] = value
-
-    return field(*new_args, **new_kwargs, metadata=metadata)
+    return field(
+        default=default,
+        default_factory=default_factory,
+        init=init,
+        repr=repr,
+        hash=hash,
+        compare=compare,
+        metadata=merged_metadata,
+        kw_only=kw_only,
+    )

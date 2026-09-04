@@ -1,4 +1,4 @@
-from auth.rbac import PermissionTree
+from server.auth.rbac import PermissionTree
 
 
 def build_tree(patterns: list[str]) -> PermissionTree:

@@ -2,13 +2,13 @@ import asyncio
 
 from unittest.mock import create_autospec
 
-from auth.authorization_service import AuthorizationService
-from auth.rbac import Permission, PermissionTree, RolePermission, TreeStore, UserRole
-from auth.rbac.authorization_tree_service import AuthorizationTreeService
-from auth.rbac.daos import RolePermissionDAO, UserRoleDAO
-from auth.rbac.permission_service import PermissionService
-from auth.rbac.role_service import RoleService
-from models.base.id import Id
+from server.auth.authorization_service import AuthorizationService
+from server.auth.rbac import Permission, PermissionTree, RolePermission, TreeStore, UserRole
+from server.auth.rbac.authorization_tree_service import AuthorizationTreeService
+from server.auth.rbac.daos import RolePermissionDAO, UserRoleDAO
+from server.auth.rbac.permission_service import PermissionService
+from server.auth.rbac.role_service import RoleService
+from server.models.base.id import Id
 
 
 def _mock_daos():
@@ -27,8 +27,8 @@ def test_role_store_no_reload_on_no_match():
         role_tree.add("read/users/*")
 
         store = TreeStore()
-        store.role_ids_by_user_id[str(user_id)] = [str(role_id)]
-        store.role_tree_by_role_id[str(role_id)] = role_tree
+        store.role_ids_by_user_id[user_id] = [role_id]
+        store.role_tree_by_role_id[role_id] = role_tree
 
         user_role_dao, role_permission_dao, permission_service = _mock_daos()
         tree_service = AuthorizationTreeService(

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Union
 
 from persistence.models import FOREIGN_KEY, INDEX, NOT_NULLABLE, UNIQUE, field
+
 from models.base.entity import Entity
 from models.base.id import Id
 

@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CreateUserRequest:
     user_name: str
+    first_name: str
+    last_name: str
     password: str
     email: str
 
@@ -45,6 +47,8 @@ class UserService:
 
         user = User(
             user_name=user_request.user_name,
+            first_name=user_request.first_name,
+            last_name=user_request.last_name,
             password_hash=self.password_service.hash_password(user_request.password),
             email=user_request.email,
         )

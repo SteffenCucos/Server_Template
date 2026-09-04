@@ -5,15 +5,15 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import Depends
+from persistence.dependencies import repository_dependency
+from persistence.pserialize_entity_serializer import PSerializeEntitySerializer
+from persistence.repository import Repository
 
 from auth.rbac import Permission as PermModel
 from auth.rbac import Role, RolePermission, UserRole
 from auth.rbac.authorization_tree_service import AuthorizationTreeService
 from auth.rbac.permission_service import PermissionService
 from auth.rbac.role_service import RoleService
-from db.dependencies import repository_dependency
-from db.pserialize_entity_serializer import PSerializeEntitySerializer
-from db.repository import Repository
 from users.dependencies import get_user_service
 from users.user_service import UserService
 

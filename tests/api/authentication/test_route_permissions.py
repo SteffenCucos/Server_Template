@@ -1,9 +1,9 @@
-from api.authentication.route_permissions import (
+from server.api.authentication.route_permissions import (
     get_auth_required,
     get_permission_requirement,
 )
-from api.decorators.authenticated import authenticated
-from api.decorators.check_permissions import check_permission
+from server.api.decorators.authenticated import authenticated
+from server.api.decorators.check_permissions import check_permission
 
 
 def test_authenticated_marks_endpoint() -> None:

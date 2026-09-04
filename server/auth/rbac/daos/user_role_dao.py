@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from persistence.daos.entity_dao import EntityDAO
+from persistence.repository import Repository
+
 from auth.rbac import UserRole
-from db.daos.entity_dao import EntityDAO
-from db.repository import Repository
 from models.base.id import Id
 
 

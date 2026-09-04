@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 
 from persistence.models import INDEX, NOT_NULLABLE, UNIQUE, field
+from typing_extensions import override
+
 from models.base.entity import Entity
 
 
@@ -12,3 +14,8 @@ class User(Entity()):  # type: ignore[misc]
     password_hash: str = field(NOT_NULLABLE)
     email: str = field(NOT_NULLABLE | UNIQUE | INDEX())
     email_verified: bool = False
+
+    @staticmethod
+    @override
+    def table_name() -> str:
+        return "users"

@@ -2,13 +2,13 @@ import asyncio
 
 from unittest.mock import create_autospec
 
-from auth.authorization_service import AuthorizationService
-from auth.rbac import Permission, RolePermission, TreeStore, UserRole
-from auth.rbac.authorization_tree_service import AuthorizationTreeService
-from auth.rbac.daos import RolePermissionDAO, UserRoleDAO
-from auth.rbac.permission_service import PermissionService
-from auth.rbac.role_service import RoleService
-from models.base.id import Id
+from server.auth.authorization_service import AuthorizationService
+from server.auth.rbac import Permission, RolePermission, TreeStore, UserRole
+from server.auth.rbac.authorization_tree_service import AuthorizationTreeService
+from server.auth.rbac.daos import RolePermissionDAO, UserRoleDAO
+from server.auth.rbac.permission_service import PermissionService
+from server.auth.rbac.role_service import RoleService
+from server.models.base.id import Id
 
 
 def test_user_has_access_through_role_permission():
