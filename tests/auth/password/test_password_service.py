@@ -1,6 +1,7 @@
 from unittest.mock import create_autospec
 
 import pytest
+
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 

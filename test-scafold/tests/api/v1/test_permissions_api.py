@@ -1,8 +1,7 @@
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
-
-from test_users_api import _create_permission, _create_role, _grant_permission, client
+from test_users_api import _create_permission, _create_role, _grant_permission
 
 
 def test_create_permission_returns_a_persisted_permission_id(client: TestClient) -> None:

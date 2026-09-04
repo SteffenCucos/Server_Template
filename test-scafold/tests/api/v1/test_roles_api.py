@@ -1,7 +1,6 @@
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
-
 from test_users_api import (
     _assign_role,
     _create_permission,
@@ -9,7 +8,6 @@ from test_users_api import (
     _create_user,
     _grant_permission,
     _unique_user_payload,
-    client,
 )
 
 

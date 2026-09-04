@@ -1,4 +1,5 @@
 import asyncio
+
 from unittest.mock import create_autospec
 
 from server.auth.rbac.daos.permission_dao import PermissionDAO
