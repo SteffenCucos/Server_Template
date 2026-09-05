@@ -1,6 +1,8 @@
 
-from dataclasses import dataclass
+from dataclasses import Field as DataclassField
+from dataclasses import dataclass, fields
 from datetime import datetime as Datetime
+from typing import Any, Iterable
 
 from persistence.models import PRIMARY_KEY, field
 from typing_extensions import dataclass_transform
@@ -27,6 +29,15 @@ class IdEntity:
         All IdEntity classes must implement this method
         """
         raise NotImplementedError()
+
+    @classmethod
+    def iterate_field_metadata(cls: type['IdEntity']) -> Iterable[DataclassField[Any]]:
+        """
+        Returns a dictionary of field names and their values for the entity.
+        """
+
+        for _field in fields(cls):
+            yield _field
 
 
 def Entity(_id_source: str | None = None) -> type[IdEntity]:

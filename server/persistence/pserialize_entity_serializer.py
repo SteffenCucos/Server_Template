@@ -29,8 +29,8 @@ class PSerializeEntitySerializer(EntitySerializer[EntityT]):
 
     def to_record(self, entity: EntityT) -> Record:
         record = self.serializer.serialize(entity)
-        if hasattr(entity, "_id") and "_id" not in record:
-            record["_id"] = str(getattr(entity, "_id"))
+        if hasattr(entity, "id") and "id" not in record:
+            record["id"] = str(getattr(entity, "id"))
         return cast(Record, record)
 
     def from_record(self, record: Mapping[str, Any]) -> EntityT:
