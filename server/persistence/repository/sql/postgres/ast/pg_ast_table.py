@@ -1,23 +1,11 @@
 
+from persistence.repository.sql.ast.ast_table import ASTTable, IASTTable
 
 
-from __future__ import annotations
+from .pg_ast_field import PGASTField
+from .pg_ast_data_types import PGDataType
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .ast_field import ASTField
-
-
-class ASTTable:
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.fields: list[ASTField] = []
-        self.fields_by_name: dict[str, ASTField] = {}
-
-    def add_field(self, field: ASTField) -> None:
-        self.fields.append(field)
-        self.fields_by_name[field.name] = field
+class PGASTTable(IASTTable[PGDataType, 'PGASTTable', PGASTField]):
 
     def create_table_ddl(self) -> str:
         field_definitions = ",\n  ".join(field.to_column_definition() for field in self.fields)

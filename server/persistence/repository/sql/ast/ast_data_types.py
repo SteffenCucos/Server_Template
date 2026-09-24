@@ -2,15 +2,36 @@
 
 import datetime
 
+from abc import ABC, abstractmethod
 from enum import StrEnum
 from types import NoneType, UnionType
-from typing import Union, get_args, get_origin
+from typing import TypeVar, Union, get_args, get_origin, Generic
+
+from typing_extensions import override
 
 
-class DataType(StrEnum):
+DataTypeT = TypeVar("DataTypeT", bound=IDataType)
+
+
+class IDataType(Generic[DataTypeT]):
+
+    @abstractmethod
+    def is_text_type(self) -> bool:
+        pass
+
+    @abstractmethod
+    @staticmethod
+    def data_type_to_supported_backing_type(data_type: DataType) -> DataTypeT:
+        pass
+
+
+class DataType(StrEnum, IDataType['DataType']):
     """
     Subset of PostgreSQL data types that are supported by the persistence layer.
     https://www.postgresql.org/docs/current/datatype.html
+    """
+    """
+    Commonly used types across many DB vendors
     """
     # Character Types
     TEXT = "TEXT"
@@ -39,6 +60,7 @@ class DataType(StrEnum):
     JSON = "JSON"
     JSONB = "JSONB"
 
+    @override
     def is_text_type(self) -> bool:
         return self in {DataType.TEXT, DataType.VARCHAR}
 
@@ -54,7 +76,7 @@ class DataType(StrEnum):
             if len(types) == 1:
                 py_type = types[0]
             else:
-                raise ValueError(f"Unsupported Python type for mapping to PostgreSQL data type: {py_type}. Only single-type Optionals are supported.")
+                raise ValueError(f"Unsupported Python type for mapping to data type: {py_type}. Only single-type Optionals are supported.")
         db_type = None
         if py_type is str or issubclass(py_type, str):
             db_type = DataType.TEXT
@@ -71,6 +93,6 @@ class DataType(StrEnum):
         elif py_type is datetime.datetime:
             db_type = DataType.TIMESTAMP
         else:
-            raise ValueError(f"Unsupported Python type for mapping to PostgreSQL data type: {py_type}")
+            raise ValueError(f"Unsupported Python type for mapping to data type: {py_type}")
 
         return db_type, is_nullable

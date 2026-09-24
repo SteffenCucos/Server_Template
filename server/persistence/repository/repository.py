@@ -24,7 +24,7 @@ class EntitySerializer(ABC, Generic[EntityT]):
         raise NotImplementedError
 
     @abstractmethod
-    def from_record(self, record: Mapping[str, Any]) -> EntityT:
+    def from_record(self, record: Record) -> EntityT:
         """Convert a backend-neutral record to an application entity."""
         raise NotImplementedError
 
@@ -33,10 +33,10 @@ class MappingSerializer(EntitySerializer[Record]):
     """Pass-through serializer for apps that use dict records directly."""
 
     def to_record(self, entity: Record) -> Record:
-        return dict(entity)
+        return entity
 
-    def from_record(self, record: Mapping[str, Any]) -> Record:
-        return dict(record)
+    def from_record(self, record: Record) -> Record:
+        return record
 
 
 class Repository(ABC, Generic[EntityT]):

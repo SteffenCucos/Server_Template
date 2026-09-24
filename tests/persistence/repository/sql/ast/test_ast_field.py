@@ -4,9 +4,9 @@ from typing import Optional, Union, get_type_hints
 
 import pytest
 
-from server.persistence.repository.sql.postgres.ast.ast_data_types import DataType
-from server.persistence.repository.sql.postgres.ast.ast_field import ASTField
-from server.persistence.repository.sql.postgres.ast.exceptions import FieldParsingException
+from server.persistence.repository.sql.ast.ast_data_types import DataType
+from server.persistence.repository.sql.ast.ast_field import ASTField
+from server.persistence.repository.sql.ast.exceptions import FieldParsingException
 
 
 def test_from_dataclass_field_no_metadata_optional():

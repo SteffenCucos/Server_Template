@@ -15,6 +15,7 @@ class DatabaseBackend(str, Enum):
     POSTGRES = "postgres"
     SQLITE = "sqlite"
 
+_db_settings: DatabaseSettings | None = None
 
 @dataclass(frozen=True)
 class DatabaseSettings:
@@ -37,10 +38,14 @@ class DatabaseSettings:
         - APP_DB_URI: database connection URI
         - APP_DB_NAME: logical database name
         """
+        global _db_settings
+        if _db_settings:
+            return _db_settings
         backend = DatabaseBackend(os.getenv(f"{prefix}_BACKEND", DatabaseBackend.MONGO.value))
         database = os.getenv(f"{prefix}_NAME", "app")
         uri = os.getenv(f"{prefix}_URI") or default_uri_for_backend(backend, database)
-        return cls(backend=backend, uri=uri, database=database)
+        _db_settings =  cls(backend=backend, uri=uri, database=database)
+        return _db_settings
 
 
 def default_uri_for_backend(backend: DatabaseBackend, database: str) -> str:

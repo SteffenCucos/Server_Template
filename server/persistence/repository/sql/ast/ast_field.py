@@ -1,44 +1,56 @@
 
 from __future__ import annotations
 
+from abc import ABC
 from dataclasses import MISSING, dataclass
 from dataclasses import Field as DataclassField
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from .ast_data_types import DataType
+
+from .ast_data_types import DataType, DataTypeT
 from .exceptions import FieldParsingException
 
+
 if TYPE_CHECKING:
-    from .ast_table import ASTTable
+    from .ast_table import ASTTable, IASTTable, TableTypeT
+    from .ast_data_types import IDataType
+
+FieldTypeT = TypeVar("FieldTypeT", bound=IASTField)
 
 
 @dataclass
-class ASTField:
+class IASTField(ABC, Generic[DataTypeT, TableTypeT, FieldTypeT]):
     name: str
-    data_type: DataType
+    data_type: DataTypeT
     is_primary_key: bool = False
     is_nullable: bool = True
     default_value: Any | None = None
     is_unique: bool = False
     check_constraint: str | None = None
-    foreign_key: tuple[ASTTable, 'ASTField'] | str | None = None
+    foreign_key: tuple[TableTypeT, FieldTypeT] | str | None = None
 
-    def to_column_definition(self) -> str:
-        sql = f'"{self.name}" {self.data_type.value}'
-        if self.is_primary_key:
-            sql += " PRIMARY KEY"
-        if not self.is_nullable:
-            sql += " NOT NULL"
-        if self.default_value is not MISSING and self.default_value is not None:
-            if self.data_type.is_text_type() and isinstance(self.default_value, str):
-                sql += f" DEFAULT '{self.default_value}'"
-            else:
-                sql += f" DEFAULT {self.default_value}"
-        if self.default_value is None:
-            sql += " DEFAULT NULL"
+    @classmethod
+    def from_ast_field[D: IDataType, T: IASTTable, F: IASTField](
+        cls: type[F], 
+        field: ASTField, 
+        data_cls: type[IDataType[D]]
+    ) -> F:
+        converted_type = data_cls.data_type_to_supported_backing_type(field.data_type)
+        
+        return cls(
+            name=field.name,
+            data_type=converted_type,
+            is_primary_key=field.is_primary_key,
+            is_nullable=field.is_nullable,
+            default_value=field.default_value,
+            is_unique=field.is_unique,
+            check_constraint=field.check_constraint,
+            # FK will be set manually in a second pass
+        )
 
-        return sql
 
+@dataclass
+class ASTField(IASTField[DataType, ASTTable, 'ASTField']):
     @staticmethod
     def from_dataclass_field(dataclass_field: DataclassField[object], type_hint: type) -> 'ASTField':
         metadata = dataclass_field.metadata
